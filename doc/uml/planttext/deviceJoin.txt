@@ -1,0 +1,27 @@
+@startuml
+
+title "for an IoT device to join the FogFlow system"
+
+autonumber
+
+NewDevice -> CloudDiscovery :  HTTP request /join(location x)
+
+CloudDiscovery -> CloudDiscovery: find a nearby site from the global routing tab 
+
+CloudDiscovery -> NewDevice: a nearby site with the nearby broker
+
+NewDevice -> NearbyBroker: interact with the nearby broker (update, query, subscribe)
+
+NearbyBroker -> localDiscovery: interact
+
+localDiscovery <-> localDiscovery: look up from the global table
+
+localDiscovery <-> OtherDiscovery(s): interact with other discovery components to figure out which broker for this entity
+
+localDiscovery -> NearbyBroker: the broke(s) to save/query/subscribe matched entities
+
+NearbyBroker <-> OtherBroker(s): interact with them (update, query, subscribe)
+
+
+@enduml
+

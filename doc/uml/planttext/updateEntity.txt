@@ -1,0 +1,55 @@
+@startuml
+
+title "updateEntity"
+
+autonumber
+
+== update entity with location x  ==
+
+
+App -> NearbyBroker: update entity E with location x 
+
+
+NearbyBroker -> NearbyBroker: check if the entity exists locally; 
+
+NearbyBroker -> LocalDiscovery: if yes, update it locally and update its registration
+LocalDiscovery -> RemoteDiscovery: announce the topic of this entity if it is new in the routing table
+
+
+NearbyBroker -> LocalDiscovery: otherwise, find out which broker is responsible for x
+LocalDiscovery -> LocalDiscovery: look up the routing table for location x
+LocalDiscovery -> NearbyBroker: a remote broker
+
+NearbyBroker -> RemoteBroker: send update to the remote broker
+
+
+== update entity with topic T  ==
+
+App -> NearbyBroker: update entity E with topic T, without location X
+NearbyBroker -> NearbyBroker: create/update it locally, assume the scope is 'local'
+
+NearbyBroker -> LocalDiscovery: update its registration
+LocalDiscovery -> RemoteDiscovery: announce the topic of this entity if it is new in the routing table
+
+App -> NearbyBroker: update intent E with scope S
+NearbyBroker -> NearbyBroker: check if S is within its own region
+NearbyBroker -> LocalDiscovery: otherwise, ask the local discovery
+LocalDiscovery -> LocalDiscovery: look up the broker(s) responsible for S from the routing table
+LocalDiscovery -> NearbyBroker: a set of brokers, BS
+
+NearbyBroker -> RemoteBroker: forward the intent entity to BS
+
+
+box "LocalSite"
+participant NearbyBroker
+participant LocalDiscovery
+end box
+
+box "RemoteSites" #LightBlue
+participant RemoteBroker
+participant RemoteDiscovery
+end box
+
+
+@enduml
+

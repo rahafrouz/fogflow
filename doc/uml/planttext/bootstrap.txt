@@ -1,0 +1,21 @@
+@startuml
+
+title "Bootstrap of a new Discovery"
+
+autonumber
+
+NewDiscovery -> TaskDesigner :  HTTP request /sitelist
+TaskDesigner -> NewDiscovery: list_of_cloud_site
+
+NewDiscovery -> CloudDiscovery: REST GET /routingtab
+CloudDiscovery -> NewDiscovery: a copy of the current routing tables
+
+NewDiscovery -> NewDiscovery: update the routing tables
+NewDiscovery -> NewDiscovery: select its direct neighbors
+
+NewDiscovery -> ParentDiscovery: annouce my info (siteInfo, geohash)
+NewDiscovery -> NeighborDiscovery: annouce my info (siteInfo, geohash)
+ParentDiscovery -> OtherDiscovery: forward the announcement to its parent and other children
+
+
+@enduml

@@ -1,0 +1,67 @@
+@startuml
+
+title "queryEntity"
+
+autonumber
+
+== query entities with a polygon Scope ==
+
+App -> NearbyBroker: NGSI10 query entities with Scope S (polygon)
+
+NearbyBroker -> LocalDiscovery: NGSI9 query for S
+LocalDiscovery -> LocalDiscovery: look up the routing table to identify which Discoverys are responsible for S
+LocalDiscovery -> RemoteDiscovery: query all other Discovery
+RemoteDiscovery -> LocalDiscovery: combine the query results
+LocalDiscovery -> NearbyBroker: <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: fetch the matched entities
+NearbyBroker -> App: return the matched entities
+
+
+== query entities with a local Scope ==
+
+App -> NearbyBroker: NGSI10 query entities with Scope (local)
+
+NearbyBroker -> LocalDiscovery: NGSI9 query for S
+LocalDiscovery -> LocalDiscovery: look up matched entities
+LocalDiscovery -> NearbyBroker: <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: fetch the matched entities
+NearbyBroker -> App: return the matched entities
+
+
+== query entities with a global Scope ==
+
+App -> NearbyBroker: NGSI10 query entities with Scope S (global), topic T
+
+NearbyBroker -> LocalDiscovery: NGSI9 query for <global, T>
+LocalDiscovery -> LocalDiscovery: look up the routing table to identify which Discoverys are responsible for topic T
+LocalDiscovery -> RemoteDiscovery: query all other Discovery
+RemoteDiscovery -> LocalDiscovery: combine the query results
+LocalDiscovery -> NearbyBroker: <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: fetch the matched entities
+NearbyBroker -> App: return the matched entities
+
+
+== query entities with a polygon Scope and a topic==
+
+App -> NearbyBroker: NGSI10 query entities with Scope S (polygon), Topic (T)
+
+NearbyBroker -> LocalDiscovery: NGSI9 query for <S, T>
+LocalDiscovery -> LocalDiscovery: look up the routing table to identify which Discoverys are responsible for <S, T>
+LocalDiscovery -> RemoteDiscovery: query all other Discovery
+RemoteDiscovery -> LocalDiscovery: combine the query results
+LocalDiscovery -> NearbyBroker: <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: fetch the matched entities
+NearbyBroker -> App: return the matched entities
+
+box "LocalSite"
+participant NearbyBroker
+participant LocalDiscovery
+end box
+
+box "RemoteSites" #LightBlue
+participant RemoteBroker
+participant RemoteDiscovery
+end box
+
+@enduml
+

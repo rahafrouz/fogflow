@@ -1,0 +1,69 @@
+@startuml
+
+title "subscribeEntity"
+
+autonumber
+
+== subscribe entities with a polygon Scope ==
+
+App -> NearbyBroker: NGSI10 subscribe entities with Scope S (polygon)
+
+NearbyBroker -> LocalDiscovery: NGSI9 subscribe for S
+LocalDiscovery -> LocalDiscovery: look up the routing table to identify which Discoverys are responsible for S
+LocalDiscovery -> RemoteDiscovery: subscribe all other Discovery
+RemoteDiscovery -> LocalDiscovery: send back the matched results
+LocalDiscovery -> NearbyBroker: inform <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: subscribe to the matched entities
+RemoteBroker -> NearbyBroker: receive the update of the subscribed entities
+NearbyBroker -> App: inform updates of the matched entities
+
+
+== subscribe entities with a local Scope ==
+
+App -> NearbyBroker: NGSI10 subscribe entities with Scope (local)
+
+NearbyBroker -> LocalDiscovery: NGSI9 subscribe, local subscription only
+LocalDiscovery -> LocalDiscovery: look up matched entities
+LocalDiscovery -> NearbyBroker: inform <ID, brokerIP> of all matched entities
+NearbyBroker -> App: inform updates of the matched entities
+
+
+== subscribe entities with a global Scope ==
+
+App -> NearbyBroker: NGSI10 subscribe entities with Scope S (global), topic T
+
+NearbyBroker -> LocalDiscovery: NGSI9 subscribe for <global, T>
+LocalDiscovery -> LocalDiscovery: look up the routing table to identify which Discoverys are responsible for topic T
+LocalDiscovery -> RemoteDiscovery: subscribe to all other Discovery
+RemoteDiscovery -> LocalDiscovery: inform the matched entities
+LocalDiscovery -> NearbyBroker: inform <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: subscribe to the matched entities
+RemoteBroker -> NearbyBroker: inform updates of the matched entities
+NearbyBroker -> App: forward updates of the matched entities
+
+
+== subscribe entities with a polygon Scope and a topic==
+
+App -> NearbyBroker: NGSI10 subscribe entities with Scope S (polygon), Topic (T)
+
+NearbyBroker -> LocalDiscovery: NGSI9 subscribe for <S, T>
+LocalDiscovery -> LocalDiscovery: look up the routing table to identify which Discoverys are responsible for <S, T>
+LocalDiscovery -> RemoteDiscovery: subscribe to all other Discovery
+RemoteDiscovery -> LocalDiscovery: inform the matched entities
+LocalDiscovery -> NearbyBroker: inform <ID, brokerIP> of all matched entities
+NearbyBroker -> RemoteBroker: subscribe to the matched entities
+RemoteBroker -> NearbyBroker: inform updates of the matched entities
+NearbyBroker -> App: forward updates of the matched entities
+
+box "LocalSite"
+participant NearbyBroker
+participant LocalDiscovery
+end box
+
+box "RemoteSites" #LightBlue
+participant RemoteBroker
+participant RemoteDiscovery
+end box
+
+@enduml
+

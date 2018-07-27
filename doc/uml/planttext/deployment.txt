@@ -1,0 +1,93 @@
+@startuml
+
+title deployment view
+
+cloud FogFlowCloud {
+    component Discovery
+    component TaskDesigner
+    component Broker    
+    component TopologyMaster
+    component Worker   
+    component Nginx
+    
+    Broker -right- Discovery
+    TaskDesigner -- Broker
+    TopologyMaster -left- Discovery
+    Worker -right- Broker
+    Nginx -up- Discovery
+    Nginx -up- Broker
+}
+
+
+node FogFlowEdge1 {
+    component DiscoveryE1
+    component BrokerE1   
+    component TopologyMasterE1
+    component WorkerE1   
+    component NginxE1
+    
+    BrokerE1 -up- DiscoveryE1
+    TopologyMasterE1 -right- DiscoveryE1
+    WorkerE1 -right- BrokerE1
+    NginxE1 -left- DiscoveryE1
+    NginxE1 -left- BrokerE1
+}
+
+
+actor  developer
+actor  operator
+actor  producer
+actor  consumer
+actor  prosumer
+
+
+node FogFlowEdge2 {
+    
+    component DiscoveryE2 
+    component BrokerE2   
+    component TopologyMasterE2
+    component WorkerE2   
+    component NginxE2
+    
+    BrokerE2 -up- DiscoveryE2
+    TopologyMasterE2 -left- DiscoveryE2
+    WorkerE2 -left- BrokerE2
+    NginxE2 -right- DiscoveryE2
+    NginxE2 -right- BrokerE2
+}
+
+
+
+NginxE1 -[#0000FF]up- Nginx
+NginxE2 -[#0000FF]up- Nginx
+NginxE1 -[#0000FF]- NginxE2
+
+developer .. TaskDesigner
+operator .. TaskDesigner
+
+producer .up. BrokerE1
+consumer .up. BrokerE1
+prosumer .up. BrokerE2
+
+
+package overview {
+
+cloud cloud1
+
+node edge1
+node edge2
+node edge3
+node edge4
+node edge5
+
+edge1 -up- cloud1
+edge2 -up- cloud1
+
+edge3 -up- edge1
+edge4 -up- edge1
+
+edge5 -up- edge2
+
+}
+
+@enduml
