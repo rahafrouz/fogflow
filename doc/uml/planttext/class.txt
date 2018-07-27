@@ -3,10 +3,22 @@
 title Concepts
 
 class DockerImage
-class Operator
-class FogFunction {
-     * granularity
+class Operator {
+    * imageName
 }
+
+class Task {
+     * granularity
+     * operator
+     * inputs
+     * outputs
+}
+
+class TaskInstance {
+    * allocated resource
+    * assigned edge node
+}
+
 
 class Task
 class Topology
@@ -14,19 +26,27 @@ class ServiceTemplate
 class IoTService
 class DockerContainer
 class Intent {
+	* template
 	* trigger
 	* geoscope
 	* QoS
 }
 
-Operator "1" *-up- "1" DockerImage: Composition
-Operator "1" *-down- "1" FogFunction: Composition
-FogFunction "1" *-down- "m" Task: Composition
-Task "1" *-down- "1" DockerContainer: Composition
-FogFunction "1" *-right- "m" Topology: Composition
-Topology "1" *-right- "1" ServiceTemplate: Composition
-ServiceTemplate "1" *-right- "1" IoTService: Composition
-IoTService "1" *-up- "m" Intent: Composition
+
+
+Operator "1" -down-* "m" DockerImage: implemented as multiple docker images
+Operator "1" *-down- "1" Task: include
+Task "1" -down- "1" TaskInstance: instantiated as
+TaskInstance "1" -down- "1" DockerContainer: runs in
+Task "m" *-right- "1" Topology:  consist of   
+Topology "1" -right- "1" ServiceTemplate: defined by 
+ServiceTemplate "1" -right- "1" IoTService: defined by 
+Intent "m" *-down- "1" ServiceTemplate: triggered by
+
+FogFunction "1" -up- "1" IoTService: explcitly triggered
+ServiceTopology "1" -up- "1" IoTService: implicitly triggered
+
 
 
 @enduml
+

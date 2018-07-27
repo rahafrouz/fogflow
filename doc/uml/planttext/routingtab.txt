@@ -1,0 +1,39 @@
+@startuml
+
+title "routing tables"
+
+
+participant RemoteDiscovery
+participant LocalDiscovery
+
+RemoteDiscovery -> LocalDiscovery: announcement of a new site
+LocalDiscovery -> ScopeRoutingTable: update the scope routing table
+
+note right of LocalDiscovery #aqua 
+    lookup only triggered locally
+end note    
+    
+LocalDiscovery -> ScopeRoutingTable: lookup a scope <polygon>
+ScopeRoutingTable -> Discovery: a set of sites, which is the minimal coverage of this scope
+LocalDiscovery -> ScopeRoutingTable: lookup a point <P>
+ScopeRoutingTable -> Discovery: the site that covers this point
+LocalDiscovery -> ScopeRoutingTable: lookup the scope <global>
+ScopeRoutingTable -> Discovery: return all sites
+LocalDiscovery -> ScopeRoutingTable: lookup the nearby sites
+ScopeRoutingTable -> Discovery: return all direct nearby sites
+
+
+
+RemoteDiscovery -> LocalDiscovery: announcement of a new topic by a site
+LocalDiscovery -> TopicRoutingTable: update the topic routing table
+
+
+note right of LocalDiscovery #aqua 
+    lookup only triggered locally
+end note    
+
+LocalDiscovery -> TopicRoutingTable: lookup a topic <T>
+TopicRoutingTable -> Discovery: a set of sites, each can provide some entities with topic T
+
+
+@enduml

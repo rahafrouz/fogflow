@@ -1,0 +1,12 @@
+@startuml
+
+title "Intent Orchestration"
+
+
+participant RemoteDiscovery
+participant LocalDiscovery
+
+
+
+@enduml
+
