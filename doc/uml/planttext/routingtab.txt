@@ -14,13 +14,13 @@ note right of LocalDiscovery #aqua
 end note    
     
 LocalDiscovery -> ScopeRoutingTable: lookup a scope <polygon>
-ScopeRoutingTable -> Discovery: a set of sites, which is the minimal coverage of this scope
+ScopeRoutingTable -> LocalDiscovery: a set of sites, which is the minimal coverage of this scope
 LocalDiscovery -> ScopeRoutingTable: lookup a point <P>
-ScopeRoutingTable -> Discovery: the site that covers this point
+ScopeRoutingTable -> LocalDiscovery: the site that covers this point
 LocalDiscovery -> ScopeRoutingTable: lookup the scope <global>
-ScopeRoutingTable -> Discovery: return all sites
+ScopeRoutingTable -> LocalDiscovery: return all sites
 LocalDiscovery -> ScopeRoutingTable: lookup the nearby sites
-ScopeRoutingTable -> Discovery: return all direct nearby sites
+ScopeRoutingTable -> LocalDiscovery: return all direct nearby sites
 
 
 
@@ -33,7 +33,7 @@ note right of LocalDiscovery #aqua
 end note    
 
 LocalDiscovery -> TopicRoutingTable: lookup a topic <T>
-TopicRoutingTable -> Discovery: a set of sites, each can provide some entities with topic T
+TopicRoutingTable -> LocalDiscovery: a set of sites, each can provide some entities with topic T
 
 
 @enduml

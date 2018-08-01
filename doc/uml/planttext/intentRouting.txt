@@ -1,0 +1,37 @@
+@startuml
+
+title "Intent Orchestration"
+
+participant APP
+participant LocalBroker
+participant LocalDiscovery
+participant LocalMaster
+participant LocalWorker
+participant RemoteDiscovery
+participant RemoteBroker
+participant RemoteMaster
+participant RemoteWorker
+
+LocalMaster -> LocalBroker: subscribe the intent for its own geohash-prefix <S1>
+LocalBroker -> LocalDiscovery: watch out the intent entity within its scope <S1>
+
+RemoteMaster -> RemoteBroker: subscribe the intent for its own geohash-prefix <S2>
+RemoteBroker -> RemoteDiscovery: watch out the intent entity within its scope <S2>
+
+
+APP -> LocalBroker: submit an intent with scope <S>; APP can be TaskDesigner or any other external Apps
+
+
+LocalBroker -> LocalDiscovery: which site covers the scope S
+LocalDiscovery -> LocalDiscovery: look up the routing table
+LocalDiscovery -> LocalBroker: return two sites: local site for S1 and remote sites for S2
+LocalBroker -> RemoteBroker: forward the intent to RemoteBroker
+
+LocalBroker -> LocalMaster: receive the intent with Scope S
+LocalMaster -> LocalMaster: intent partition and fog function orchestration
+
+RemoteBroker -> RemoteMaster: receive the intent with Scope S
+RemoteMaster -> RemoteMaster: intent orchestration
+
+
+@enduml

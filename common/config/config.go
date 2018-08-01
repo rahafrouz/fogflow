@@ -49,7 +49,7 @@ type Config struct {
 	ExternalIP    string           `json:"external_hostip"`
 	InternalIP    string           `json:"internal_hostip"`
 	PLocation     PhysicalLocation `json:"physical_location"`
-	LLocation     LogicalLocation  `json:"logical_location"`
+	Precision     uint             `json:"geohash_precision"`
 	Logging       struct {
 		Info     string `json:"info"`
 		Protocol string `json:"protocol"`

@@ -20,6 +20,9 @@ type FastDiscovery struct {
 	//backend entity repository
 	repository EntityRepository
 
+	//routing table
+	routingTable *Routing
+
 	//mapping from subscriptionID to subscription
 	subscriptions      map[string]*SubscribeContextAvailabilityRequest
 	subscriptions_lock sync.RWMutex
@@ -372,6 +375,24 @@ func (fd *FastDiscovery) getSubscriptions(w rest.ResponseWriter, r *rest.Request
 	defer fd.subscriptions_lock.RUnlock()
 
 	w.WriteJson(fd.subscriptions)
+}
+
+func (fd *FastDiscovery) onBroadcast(w rest.ResponseWriter, r *rest.Request) {
+	msg := RecvBroadcastMsg{}
+	err := r.DecodeJsonPayload(&msg)
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fd.routingTable.ReceiveBroadcast(&msg)
+
+	w.WriteHeader(200)
+}
+
+func (fd *FastDiscovery) getAllSites(w rest.ResponseWriter, r *rest.Request) {
+	w.WriteJson(fd.routingTable.Serialization())
+	w.WriteHeader(200)
 }
 
 func (fd *FastDiscovery) getStatus(w rest.ResponseWriter, r *rest.Request) {
