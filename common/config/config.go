@@ -44,11 +44,12 @@ func (r *RegistryConfiguration) IsConfigured() bool {
 }
 
 type Config struct {
-	ExternalIP string           `json:"external_ip"`
-	InternalIP string           `json:"internal_ip"`
-	PLocation  PhysicalLocation `json:"physical_location"`
-	LLocation  LogicalLocation  `json:"logical_location"`
-	Logging    struct {
+	RootDiscovery string           `json:"root_discovery"`
+	ExternalIP    string           `json:"external_ip"`
+	InternalIP    string           `json:"internal_ip"`
+	PLocation     PhysicalLocation `json:"physical_location"`
+	Precision     uint             `json:"geohash_precision"`
+	Logging       struct {
 		Info     string `json:"info"`
 		Protocol string `json:"protocol"`
 		Errlog   string `json:"error"`

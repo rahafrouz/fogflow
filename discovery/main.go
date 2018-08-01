@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mmcloughlin/geohash"
 
 	. "fogflow/common/config"
 )
@@ -25,16 +26,17 @@ func main() {
 		os.Exit(-1)
 	}
 
-	// overwrite the configuration with environment variables
-	if hostip, exist := os.LookupEnv("postgresql_host"); exist {
-		config.Discovery.DBCfg.Host = hostip
-	}
-	if port, exist := os.LookupEnv("postgresql_port"); exist {
-		config.Discovery.DBCfg.Port, _ = strconv.Atoi(port)
-	}
+	// load the routing table and announce itself
+	rTable := Routing{}
+	mySiteInfo := SiteInfo{}
+	mySiteInfo.ExternalAddress = fmt.Sprintf("%s:%d", config.ExternalIP, config.Discovery.Port)
+	mySiteInfo.GeohashID = geohash.EncodeWithPrecision(config.PLocation.Latitude,
+		config.PLocation.Longitude,
+		config.Precision)
+	rTable.Init(config.RootDiscovery, mySiteInfo)
 
 	// initialize IoT Discovery
-	iotDiscovery := FastDiscovery{}
+	iotDiscovery := FastDiscovery{routingTable: &rTable}
 	iotDiscovery.Init(&config.Discovery.DBCfg)
 
 	// start REST API server
@@ -51,6 +53,11 @@ func main() {
 		rest.Get("/ngsi9/subscription/#sid", iotDiscovery.getSubscription),
 		rest.Get("/ngsi9/subscription", iotDiscovery.getSubscriptions),
 
+		// maintain the routing tables for distributed discovery
+		rest.Post("/ngsi9/broadcast", iotDiscovery.onBroadcast),
+		rest.Get("/ngsi9/sitelist", iotDiscovery.getAllSites),
+
+		// for health check
 		rest.Get("/ngsi9/status", iotDiscovery.getStatus),
 	)
 	if err != nil {

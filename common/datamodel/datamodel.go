@@ -32,9 +32,6 @@ type TaskUpdate struct {
 type PhysicalLocation struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
-	Section   string  `json:"section"`
-	District  string  `json:"district"`
-	City      string  `json:"city"`
 }
 
 type LogicalLocation struct {

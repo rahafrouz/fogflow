@@ -16,11 +16,11 @@ NearbyBroker -> localDiscovery: interact
 
 localDiscovery <-> localDiscovery: look up from the global table
 
-localDiscovery <-> OtherDiscovery(s): interact with other discovery components to figure out which broker for this entity
+localDiscovery <-> OtherDiscovery: interact with other discovery components to figure out which broker for this entity
 
 localDiscovery -> NearbyBroker: the broke(s) to save/query/subscribe matched entities
 
-NearbyBroker <-> OtherBroker(s): interact with them (update, query, subscribe)
+NearbyBroker <-> OtherBroker: interact with them (update, query, subscribe)
 
 
 @enduml

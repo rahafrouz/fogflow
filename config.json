@@ -1,19 +1,12 @@
 {
-    "external_IP": "10.1.1.187",     
+    "root_discovery": "127.0.0.1:8071",     
+    "external_IP": "127.0.0.1",     
     "internal_IP": "127.0.0.1", 
     "physical_location":{
         "longitude": 139.709059,
-        "latitude": 35.692221,
-        "section": "01",
-        "district": "02",
-        "city": "Tokyo"
+        "latitude": 35.692221
     },
-    "logical_location": {
-        "node_no": 2,
-        "site_no": 2,
-        "layer_no": 2,
-        "parent_site_no": 1
-    },    
+    "geohash_precision": 1,     
     "logging":{
         "info":"stdout",
         "error":"stderr",
@@ -27,7 +20,7 @@
             "username": "postgres",
             "password": "postgres",
             "host": "127.0.0.1",
-            "port": 5432,
+            "port": 5433,
             "dbname": "ngsi9"
         }    
     },
