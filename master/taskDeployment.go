@@ -95,9 +95,6 @@ func extractWorkerProfile(workerCtxObjects []*ContextObject) map[string]*WorkerP
 		jsonPLText, _ := json.Marshal(worker.Attributes["physical_location"].Value)
 		json.Unmarshal(jsonPLText, &wProfile.PLocation)
 
-		jsonLLText, _ := json.Marshal(worker.Attributes["logical_location"].Value)
-		json.Unmarshal(jsonLLText, &wProfile.LLocation)
-
 		workerProfileList[wProfile.WID] = &wProfile
 	}
 
@@ -189,9 +186,6 @@ func closeEdgeNodeFirst(taskInstance *TaskInstance, workers map[string]*WorkerPr
 		for _, subTask := range taskInstance.Children {
 			closeEdgeNodeFirst(subTask, workers, streams)
 		}
-
-		// decide where to allocate the current task, one layer above the first child task instance is located
-		parentSiteNo := workers[taskInstance.Children[0].WorkerID].LLocation.ParentSiteNo
 
 		// find some worker at the parent site
 		workerID := ""

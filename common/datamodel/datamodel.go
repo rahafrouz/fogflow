@@ -214,7 +214,7 @@ type ScheduledTaskInstance struct {
 type WorkerProfile struct {
 	WID       string
 	PLocation PhysicalLocation
-	LLocation LogicalLocation
+	GeohashID string
 	Capacity  int
 	OSType    string
 	HWType    string

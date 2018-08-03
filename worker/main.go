@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
+
+	"github.com/mmcloughlin/geohash"
 
 	. "fogflow/common/config"
 )
@@ -21,6 +22,8 @@ func generateID(text string) string {
 
 func main() {
 	configurationFile := flag.String("f", "config.json", "A configuration file")
+	id := flag.String("i", "0", "its ID in the current site")
+
 	flag.Parse()
 	config, err := LoadConfig(*configurationFile)
 	if err != nil {
@@ -29,7 +32,8 @@ func main() {
 		os.Exit(-1)
 	}
 
-	myID := "Worker." + strconv.Itoa(config.LLocation.LayerNo) + "." + strconv.Itoa(config.LLocation.SiteNo)
+	geohashID := geohash.EncodeWithPrecision(config.PLocation.Latitude, config.PLocation.Longitude, config.Precision)
+	myID := "Worker." + geohashID + "." + (*id)
 
 	// start the worker to deal with tasks
 	var worker = &Worker{id: myID}

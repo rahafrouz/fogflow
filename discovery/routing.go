@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mmcloughlin/geohash"
+
 	. "fogflow/common/config"
 	. "fogflow/common/ngsi"
 )
@@ -21,15 +23,13 @@ type SiteInfo struct {
 type TreeNode struct {
 	MyInfo SiteInfo `json:"siteinfo"`
 
-	Parent    string   `json:"parent"`
-	Children  []string `json:"children"`
-	Neighbors []string `json:"neighbors"`
+	Parent   string   `json:"parent"`
+	Children []string `json:"children"`
 }
 
 type SiteNode struct {
-	Parent    *SiteNode
-	Children  []*SiteNode
-	Neighbors []*SiteNode
+	Parent   *SiteNode
+	Children []*SiteNode
 
 	MyInfo SiteInfo
 }
@@ -64,6 +64,26 @@ func isParentCell(geohashA string, geohashB string) bool {
 	}
 }
 
+func PointInGeohashCell(geohashID string, point Point) bool {
+	precision := uint(len(geohashID))
+	prefix := geohash.EncodeWithPrecision(point.Latitude, point.Longitude, precision)
+	if prefix == geohashID {
+		return true
+	} else {
+		return false
+	}
+}
+
+func CellContainPolygon(geohashID string, polygon Polygon) bool {
+	for _, point := range polygon.Vertices {
+		if PointInGeohashCell(geohashID, point) == false {
+			return false
+		}
+	}
+
+	return true
+}
+
 type Routing struct {
 	//current site
 	MySiteNode *SiteNode
@@ -90,7 +110,6 @@ func (r *Routing) Init(rootDiscovery string, mySite SiteInfo) {
 		sNode := SiteNode{}
 		sNode.Parent = nil
 		sNode.Children = make([]*SiteNode, 0)
-		sNode.Neighbors = make([]*SiteNode, 0)
 		sNode.MyInfo = mySite
 
 		r.MySiteNode = &sNode
@@ -107,7 +126,6 @@ func (r *Routing) Init(rootDiscovery string, mySite SiteInfo) {
 		sNode.MyInfo.ExternalAddress = mySite.ExternalAddress
 		sNode.MyInfo.GeohashID = mySite.GeohashID
 		sNode.Children = make([]*SiteNode, 0)
-		sNode.Neighbors = make([]*SiteNode, 0)
 		sNode.Parent = nil
 
 		r.MySiteNode = &sNode
@@ -150,12 +168,44 @@ func (r *Routing) fetchRoutingTable(rootSiteIP string) error {
 
 // go through the tree from the top, find out the leaf node that covers the point
 func (r *Routing) GetSite(location Point) SiteInfo {
-	site := SiteInfo{}
+	leaf := r.RootSite
+	for len(leaf.Children) >= 0 {
+		for _, child := range leaf.Children {
+			if PointInGeohashCell(child.MyInfo.GeohashID, location) == true {
+				leaf = child
+				break
+			}
+		}
+	}
 
-	return site
+	return leaf.MyInfo
 }
 
-func (r *Routing) GetMiniCover(geohashID string) []SiteInfo {
+// find out a small set of geohashIDs that can cover the specified polygon
+func (r *Routing) GetCoverageForPolygon(region Polygon) []SiteInfo {
+	involvedSites := make([]SiteInfo, 0)
+
+	leaf := r.RootSite
+	for _, child := range leaf.Children {
+		if CellContainPolygon(child.MyInfo.GeohashID, region) == true {
+			leaf = child
+			continue
+		}
+	}
+
+	r.GetAllSubSites(leaf, involvedSites)
+	return involvedSites
+}
+
+func (r *Routing) GetAllSubSites(curSite *SiteNode, allSites []SiteInfo) {
+	allSites = append(allSites, curSite.MyInfo)
+
+	for _, child := range curSite.Children {
+		r.GetAllSubSites(child, allSites)
+	}
+}
+
+func (r *Routing) GetMiniCoverForCircle(region Circle) []SiteInfo {
 	involvedSites := make([]SiteInfo, 0)
 
 	return involvedSites
@@ -205,6 +255,7 @@ func (r *Routing) ReceiveBroadcast(msg *RecvBroadcastMsg) {
 		newMsg.From = r.MySiteNode.MyInfo.GeohashID
 		newMsg.PayLoad = newSite
 
+		// further send it to the others over the tree, including its parent and other children
 		from := msg.From
 		go r.Broadcast(&newMsg, from)
 
@@ -212,7 +263,6 @@ func (r *Routing) ReceiveBroadcast(msg *RecvBroadcastMsg) {
 		siteNode.MyInfo.ExternalAddress = newSite.ExternalAddress
 		siteNode.MyInfo.GeohashID = newSite.GeohashID
 		siteNode.Children = make([]*SiteNode, 0)
-		siteNode.Neighbors = make([]*SiteNode, 0)
 		siteNode.Parent = nil
 
 		r.updateWithNewSite(&siteNode)
@@ -309,11 +359,6 @@ func (r *Routing) Serialization() []TreeNode {
 			treeNode.Children = append(treeNode.Children, node.MyInfo.GeohashID)
 		}
 
-		treeNode.Neighbors = make([]string, 0)
-		for _, node := range v.Neighbors {
-			treeNode.Neighbors = append(treeNode.Neighbors, node.MyInfo.GeohashID)
-		}
-
 		siteList = append(siteList, treeNode)
 	}
 
@@ -348,11 +393,6 @@ func (r *Routing) Deserialization(siteList []TreeNode) {
 		siteNode.Children = make([]*SiteNode, 0)
 		for _, geohash := range node.Children {
 			siteNode.Children = append(siteNode.Children, r.GeoRoutingTable[geohash])
-		}
-
-		siteNode.Neighbors = make([]*SiteNode, 0)
-		for _, geohash := range node.Neighbors {
-			siteNode.Neighbors = append(siteNode.Neighbors, r.GeoRoutingTable[geohash])
 		}
 	}
 
