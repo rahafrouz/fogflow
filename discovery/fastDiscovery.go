@@ -157,6 +157,30 @@ func (fd *FastDiscovery) deleteRegistration(registration *ContextRegistration) {
 	}
 }
 
+func (fd *FastDiscovery) SiteDiscoverContextAvailability(w rest.ResponseWriter, r *rest.Request) {
+	discoverCtxReq := DiscoverContextAvailabilityRequest{}
+	err := r.DecodeJsonPayload(&discoverCtxReq)
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// query database to get the result
+	result := fd.handleQueryCtxAvailability(&discoverCtxReq)
+
+	// send out the response
+	discoverCtxResp := DiscoverContextAvailabilityResponse{}
+	if result == nil {
+		discoverCtxResp.ErrorCode.Code = 500
+		discoverCtxResp.ErrorCode.ReasonPhrase = "database is too overloaded"
+	} else {
+		discoverCtxResp.ContextRegistrationResponses = *result
+		discoverCtxResp.ErrorCode.Code = 200
+		discoverCtxResp.ErrorCode.ReasonPhrase = "OK"
+	}
+	w.WriteJson(&discoverCtxResp)
+}
+
 func (fd *FastDiscovery) DiscoverContextAvailability(w rest.ResponseWriter, r *rest.Request) {
 	discoverCtxReq := DiscoverContextAvailabilityRequest{}
 	err := r.DecodeJsonPayload(&discoverCtxReq)
@@ -164,6 +188,8 @@ func (fd *FastDiscovery) DiscoverContextAvailability(w rest.ResponseWriter, r *r
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// look up the routing table to see which sites should be contacted for this query
 
 	// query database to get the result
 	result := fd.handleQueryCtxAvailability(&discoverCtxReq)
@@ -202,6 +228,42 @@ func (fd *FastDiscovery) handleQueryCtxAvailability(req *DiscoverContextAvailabi
 	return &registrationList
 }
 
+func (fd *FastDiscovery) SiteSubscribeContextAvailability(w rest.ResponseWriter, r *rest.Request) {
+	subscribeCtxAvailabilityReq := SubscribeContextAvailabilityRequest{}
+	err := r.DecodeJsonPayload(&subscribeCtxAvailabilityReq)
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// generate a new subscription id
+	u1, err := uuid.NewV4()
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	subID := u1.String()
+
+	subscribeCtxAvailabilityReq.SubscriptionId = subID
+
+	// add the new subscription
+	fd.subscriptions_lock.Lock()
+	fd.subscriptions[subID] = &subscribeCtxAvailabilityReq
+	fd.subscriptions_lock.Unlock()
+
+	// send out the response
+	subscribeCtxAvailabilityResp := SubscribeContextAvailabilityResponse{}
+	subscribeCtxAvailabilityResp.SubscriptionId = subID
+	subscribeCtxAvailabilityResp.Duration = subscribeCtxAvailabilityReq.Duration
+	subscribeCtxAvailabilityResp.ErrorCode.Code = 200
+	subscribeCtxAvailabilityResp.ErrorCode.ReasonPhrase = "OK"
+
+	w.WriteJson(&subscribeCtxAvailabilityResp)
+
+	// trigger the process to send out the matched context availability infomation to the subscriber
+	go fd.handleSubscribeCtxAvailability(&subscribeCtxAvailabilityReq)
+}
+
 func (fd *FastDiscovery) SubscribeContextAvailability(w rest.ResponseWriter, r *rest.Request) {
 	subscribeCtxAvailabilityReq := SubscribeContextAvailabilityRequest{}
 	err := r.DecodeJsonPayload(&subscribeCtxAvailabilityReq)
@@ -235,10 +297,10 @@ func (fd *FastDiscovery) SubscribeContextAvailability(w rest.ResponseWriter, r *
 	w.WriteJson(&subscribeCtxAvailabilityResp)
 
 	// trigger the process to send out the matched context availability infomation to the subscriber
-	go fd.handleSubscrieCtxAvailability(&subscribeCtxAvailabilityReq)
+	go fd.handleSubscribeCtxAvailability(&subscribeCtxAvailabilityReq)
 }
 
-func (fd *FastDiscovery) handleSubscrieCtxAvailability(subReq *SubscribeContextAvailabilityRequest) {
+func (fd *FastDiscovery) handleSubscribeCtxAvailability(subReq *SubscribeContextAvailabilityRequest) {
 	entityMap := fd.repository.queryEntities(subReq.Entities, subReq.Attributes, subReq.Restriction)
 
 	if len(entityMap) > 0 {
@@ -312,6 +374,32 @@ func (fd *FastDiscovery) sendNotify(subID string, subscriberURL string, entityMa
 	if notifyCtxAvailResp.ResponseCode.Code != 200 {
 		fmt.Println(notifyCtxAvailResp.ResponseCode.ReasonPhrase)
 	}
+}
+
+func (fd *FastDiscovery) SiteUnsubscribeContextAvailability(w rest.ResponseWriter, r *rest.Request) {
+	unsubscribeCtxAvailabilityReq := UnsubscribeContextAvailabilityRequest{}
+	err := r.DecodeJsonPayload(&unsubscribeCtxAvailabilityReq)
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	subID := unsubscribeCtxAvailabilityReq.SubscriptionId
+
+	fmt.Println("unsubscribe context availability, ", subID)
+
+	// remove the subscription
+	fd.subscriptions_lock.Lock()
+	delete(fd.subscriptions, subID)
+	fd.subscriptions_lock.Unlock()
+
+	// send out the response
+	unsubscribeCtxAvailabilityResp := UnsubscribeContextAvailabilityResponse{}
+	unsubscribeCtxAvailabilityResp.SubscriptionId = unsubscribeCtxAvailabilityReq.SubscriptionId
+	unsubscribeCtxAvailabilityResp.StatusCode.Code = 200
+	unsubscribeCtxAvailabilityResp.StatusCode.Details = "OK"
+
+	w.WriteJson(&unsubscribeCtxAvailabilityResp)
 }
 
 func (fd *FastDiscovery) UnsubscribeContextAvailability(w rest.ResponseWriter, r *rest.Request) {

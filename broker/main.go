@@ -10,11 +10,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mmcloughlin/geohash"
+
 	. "fogflow/common/config"
 )
 
 func main() {
 	cfgFile := flag.String("f", "config.json", "A configuration file")
+	id := flag.String("i", "0", "its ID in the current site")
+	port := flag.String("p", "0", "the listening port")
+
 	flag.Parse()
 	config, err := LoadConfig(*cfgFile)
 	if err != nil {
@@ -23,7 +28,12 @@ func main() {
 		os.Exit(-1)
 	}
 
-	myID := "Broker." + strconv.Itoa(config.LLocation.LayerNo) + "." + strconv.Itoa(config.LLocation.SiteNo)
+	if (*port) != "0" {
+		config.Broker.Port, _ = strconv.Atoi(*port)
+	}
+
+	geohashID := geohash.EncodeWithPrecision(config.PLocation.Latitude, config.PLocation.Longitude, config.Precision)
+	myID := "Broker." + geohashID + "." + (*id)
 
 	// check if IoT Discovery is ready
 	for {

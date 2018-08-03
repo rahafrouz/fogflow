@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
+
+	"github.com/mmcloughlin/geohash"
 
 	. "fogflow/common/config"
 )
@@ -21,7 +22,8 @@ func main() {
 		os.Exit(-1)
 	}
 
-	myID := "Master." + strconv.Itoa(config.LLocation.LayerNo) + "." + strconv.Itoa(config.LLocation.SiteNo)
+	geohashID := geohash.EncodeWithPrecision(config.PLocation.Latitude, config.PLocation.Longitude, config.Precision)
+	myID := "Master." + geohashID
 
 	master := Master{id: myID}
 	master.Start(&config)

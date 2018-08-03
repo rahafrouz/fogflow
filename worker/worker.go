@@ -30,7 +30,6 @@ func (w *Worker) Start(config *Config) bool {
 	w.profile.WID = w.id
 	w.profile.Capacity = 10
 	w.profile.PLocation = config.PLocation
-	w.profile.LLocation = config.LLocation
 
 	w.profile.OSType = runtime.GOOS
 	w.profile.HWType = runtime.GOARCH
@@ -134,7 +133,6 @@ func (w *Worker) publishMyself() error {
 	ctxObj.Attributes["id"] = ValueObject{Type: "string", Value: w.id}
 	ctxObj.Attributes["capacity"] = ValueObject{Type: "integer", Value: 2}
 	ctxObj.Attributes["physical_location"] = ValueObject{Type: "object", Value: w.cfg.PLocation}
-	ctxObj.Attributes["logical_location"] = ValueObject{Type: "object", Value: w.cfg.LLocation}
 
 	ctxObj.Metadata = make(map[string]ValueObject)
 	mylocation := Point{}

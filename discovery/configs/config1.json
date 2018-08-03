@@ -6,7 +6,7 @@
         "longitude": 139.709059,
         "latitude": 35.692221
     },
-    "geohash_precision": 1,     
+    "geohash_precision": 2,     
     "logging":{
         "info":"stdout",
         "error":"stderr",
@@ -14,18 +14,18 @@
         "debug": "discard"
     },
     "discovery": {
-        "port": 8090,
+        "port": 8091,
         "postgresql": {
             "dbreset": true,
             "username": "postgres",
             "password": "postgres",
             "host": "127.0.0.1",
             "port": 5433,
-            "dbname": "ngsi9"
+            "dbname": "ngsi91"
         }    
     },
     "broker": {
-        "port": 8070,
+        "port": 8071,
         "websocket": 8090        
     },    
     "master": {
