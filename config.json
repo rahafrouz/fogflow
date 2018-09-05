@@ -15,7 +15,7 @@
         "debug": "discard"
     },
     "discovery": {
-        "port": 8071,
+        "port": 8090,
         "postgresql": {
             "dbreset": true,
             "username": "postgres",
