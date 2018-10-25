@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+type SiteInfo struct {
+	ExternalAddress string `json:"externalAddress"`
+	GeohashID       string `json:"geohashID"`
+	IsLocalSite     bool   `json:"isLocalSite"`
+}
+
 type NotifyConditionType int
 type UpdateActionType int
 
@@ -20,6 +26,11 @@ const (
 	APPEND
 	DELETE
 )
+
+type BrokerProfile struct {
+	BID   string
+	MyURL string
+}
 
 type NearBy struct {
 	Latitude  float64 `json:"latitude"`
@@ -287,6 +298,28 @@ func (ce *ContextElement) Clone(orig *ContextElement) {
 	ce.AttributeDomainName = orig.AttributeDomainName
 }
 
+func (ce *ContextElement) GetScope() OperationScope {
+	updateScope := OperationScope{}
+
+	isLocal := true
+	for _, metadata := range ce.Metadata {
+		if metadata.Name == "location" {
+			if metadata.Type == "global" || metadata.Type == "circle" || metadata.Type == "polygon" {
+				updateScope.Type = metadata.Type
+				updateScope.Value = metadata.Value
+				isLocal = false
+				break
+			}
+		}
+	}
+
+	if isLocal == true {
+		updateScope.Type = "local"
+	}
+
+	return updateScope
+}
+
 type ContextElementOrion struct {
 	ID                  string                  `json:"id"`
 	Type                string                  `json:"type"`
@@ -319,26 +352,6 @@ func (element *ContextElement) MarshalJSON() ([]byte, error) {
 
 			convertedElement.Attributes = append(convertedElement.Attributes, orionAttr)
 		}
-
-		/* Orion is not using domain context metadata
-		convertedElement.Metadatas = make([]ContextMetadata, len(element.Metadata))
-		copy(convertedElement.Metadatas, element.Metadata)
-
-			convertedElement.Metadatas = make([]ContextMetadata, 0)
-			for _, meta := range element.Metadata {
-				orionMeta := ContextMetadata{}
-				orionMeta.Name = meta.Name
-				orionMeta.Type = "string"
-
-				bytes, err := json.Marshal(&meta.Value)
-				if err == nil {
-					orionMeta.Value = string(bytes)
-				} else {
-					orionMeta.Value = ""
-				}
-
-				convertedElement.Metadatas = append(convertedElement.Metadatas, orionMeta)
-			} */
 
 		return json.Marshal(&convertedElement)
 	} else {
@@ -415,6 +428,11 @@ func (scope *OperationScope) UnmarshalJSON(b []byte) error {
 			if err = json.Unmarshal(s.Value, &temp); err == nil {
 				(*scope).Value = temp
 			}
+		case "global":
+			var temp string
+			if err = json.Unmarshal(s.Value, &temp); err == nil {
+				(*scope).Value = temp
+			}
 		case "stringQuery":
 			var temp string
 			if err = json.Unmarshal(s.Value, &temp); err == nil {
@@ -431,6 +449,25 @@ func (scope *OperationScope) UnmarshalJSON(b []byte) error {
 type Restriction struct {
 	AttributeExpression string           `json:"attributeExpression, omitempty"`
 	Scopes              []OperationScope `json:"scopes,omitempty"`
+}
+
+func (restriction *Restriction) GetScope() OperationScope {
+	myscope := OperationScope{}
+
+	isLocal := true
+	for _, scope := range restriction.Scopes {
+		if scope.Type == "global" || scope.Type == "circle" || scope.Type == "polygon" {
+			myscope = scope
+			isLocal = false
+			break
+		}
+	}
+
+	if isLocal == true {
+		myscope.Type = "local"
+	}
+
+	return myscope
 }
 
 type SubscribeResponse struct {

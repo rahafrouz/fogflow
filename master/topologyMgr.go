@@ -10,7 +10,7 @@ import (
 )
 
 type ProcessingPlane struct {
-	Requirement *Requirement // requirement issued by external applications
+	Intent *Intent // orchestration intent issued by external applications
 
 	ExecutionPlan  []*TaskInstance          // represent the derived execution plan
 	DeploymentPlan []*ScheduledTaskInstance // represent the derived deployment plan
@@ -39,20 +39,83 @@ func (tMgr *TopologyMgr) Init() {
 //
 // update the execution plan and deployment plan according to the system changes
 //
+func (tMgr *TopologyMgr) handleTopologyUpdate(topologyCtxObj *ContextObject) {
+	topologyID := topologyCtxObj.Entity.ID
 
-func (tMgr *TopologyMgr) handleTopologyUpdate(responses []ContextElementResponse, sid string) {
-	INFO.Println("handle topology update")
-	topologyCtxObj := CtxElement2Object(&(responses[0].ContextElement))
-
-	DEBUG.Printf("%+v\r\n", topologyCtxObj)
-
-	// handle the incoming new requirement to trigger data processing tasks
-	if topologyCtxObj.Attributes["status"].Value == "enabled" {
-		tMgr.enableTopology(topologyCtxObj)
-	} else if topologyCtxObj.Attributes["status"].Value == "disabled" {
-		tMgr.disableTopology(topologyCtxObj)
+	topology := Topology{}
+	jsonText, _ := json.Marshal(topologyCtxObj.Attributes["template"].Value.(map[string]interface{}))
+	err := json.Unmarshal(jsonText, &topology)
+	if err == nil {
+		INFO.Println(topology)
+		tMgr.topologyList_lock.Lock()
+		tMgr.topologyList[topologyID] = &topology
+		tMgr.topologyList_lock.Unlock()
 	}
 }
+
+func (tMgr *TopologyMgr) handleIntentUpdate(intentObj *ContextObject) {
+	INFO.Println("handle intent update")
+	DEBUG.Println(intentObj)
+
+	/*
+		if processingPlane, exist := tMgr.processList[intent.ID]; exist {
+			INFO.Printf("update intent: %+v\r\n", intent)
+			tMgr.updateExistIntent(processingPlane, intent)
+		} else {
+			INFO.Printf("new intent: %+v\r\n", intent)
+			tMgr.createNewIntent(intent)
+		} */
+}
+
+/*
+func (tMgr *TopologyMgr) handleIntentUpdate(responses []ContextElementResponse, sid string) {
+	INFO.Println("=================handle intent update=================")
+
+	intentCtxObj := CtxElement2Object(&(responses[0].ContextElement))
+	if intentCtxObj.IsEmpty() == true { // the intent object is deleted
+		tMgr.cancelIntent(intentCtxObj.Entity.ID)
+		return
+	}
+
+	INFO.Println("read the intent entity")
+
+	// extract the issued intent
+	intent := Intent{}
+
+	intent.ID = intentCtxObj.Entity.ID
+
+	if intentCtxObj.Attributes["restriction"].Value == nil {
+		intent.Restriction = nil
+	} else {
+		restriction := Restriction{}
+		jsondata, _ := json.Marshal(intentCtxObj.Attributes["restriction"].Value.(map[string]interface{}))
+		err := json.Unmarshal(jsondata, &restriction)
+		if err != nil {
+			ERROR.Println("failed to read the given restriction")
+			intent.Restriction = nil
+		} else {
+			intent.Restriction = &restriction
+		}
+	}
+
+	if intentCtxObj.Metadata["topology"].Value == nil {
+		ERROR.Println("the topology ID is not specified in the intent")
+		return
+	}
+
+	INFO.Println("read the topology entity")
+
+	topologyID := intentCtxObj.Metadata["topology"].Value.(string)
+	topology := tMgr.getTopology(topologyID)
+	if topology == nil {
+		ERROR.Println("the topology is not submitted yet for this intent")
+	} else {
+		intent.Topology = topology
+		tMgr.onIntent(&intent)
+	}
+}  */
+
+/*
 
 func (tMgr *TopologyMgr) enableTopology(topologyCtxObj *ContextObject) {
 	// find out the requested topology
@@ -76,72 +139,21 @@ func (tMgr *TopologyMgr) disableTopology(topologyCtxObj *ContextObject) {
 	}
 }
 
-func (tMgr *TopologyMgr) handleRequirementUpdate(responses []ContextElementResponse, sid string) {
-	INFO.Println("=================handle requirement update=================")
-
-	requirementCtxObj := CtxElement2Object(&(responses[0].ContextElement))
-	if requirementCtxObj.IsEmpty() == true { // the requirement is deleted
-		tMgr.cancelRequirement(requirementCtxObj.Entity.ID)
-		return
-	}
-
-	INFO.Println("read the requirement entity")
-
-	// extract the issued requirement
-	requirement := Requirement{}
-
-	requirement.ID = requirementCtxObj.Entity.ID
-
-	requirement.Output = requirementCtxObj.Attributes["output"].Value.(string)
-	requirement.ScheduleMethod = requirementCtxObj.Attributes["scheduler"].Value.(string)
-
-	if requirementCtxObj.Attributes["restriction"].Value == nil {
-		requirement.Restriction = nil
+func (tMgr *TopologyMgr) onIntent(intent *Intent) {
+	if processingPlane, exist := tMgr.processList[intent.ID]; exist {
+		INFO.Printf("update intent: %+v\r\n", intent)
+		tMgr.updateExistIntent(processingPlane, intent)
 	} else {
-		restriction := Restriction{}
-		jsondata, _ := json.Marshal(requirementCtxObj.Attributes["restriction"].Value.(map[string]interface{}))
-		err := json.Unmarshal(jsondata, &restriction)
-		if err != nil {
-			ERROR.Println("failed to read the given restriction")
-			requirement.Restriction = nil
-		} else {
-			requirement.Restriction = &restriction
-		}
-	}
-
-	if requirementCtxObj.Metadata["topology"].Value == nil {
-		ERROR.Println("the topology ID is not specified in the requirement")
-		return
-	}
-
-	INFO.Println("read the topology entity")
-
-	topologyID := requirementCtxObj.Metadata["topology"].Value.(string)
-	topology := tMgr.getTopology(topologyID)
-	if topology == nil {
-		ERROR.Println("the topology is not submitted yet for this requirement")
-	} else {
-		requirement.Topology = topology
-		INFO.Printf("requirement: output stream %s in topology %+v\n", requirement.Output, requirement.Topology)
-		tMgr.onRequirement(&requirement)
+		INFO.Printf("new intent: %+v\r\n", intent)
+		tMgr.createNewIntent(intent)
 	}
 }
 
-func (tMgr *TopologyMgr) onRequirement(requirement *Requirement) {
-	if processingPlane, exist := tMgr.processList[requirement.ID]; exist {
-		INFO.Printf("update requirement: %+v\r\n", requirement)
-		tMgr.updateExistRequirement(processingPlane, requirement)
-	} else {
-		INFO.Printf("new requirement: %+v\r\n", requirement)
-		tMgr.createNewRequirement(requirement)
-	}
-}
-
-func (tMgr *TopologyMgr) createNewRequirement(requirement *Requirement) {
+func (tMgr *TopologyMgr) createNewIntent(intent *Intent) {
 	// STEP 1: preparation
 
 	// find out the trigger processing logic from the service topology
-	rootTask := tMgr.getProcessingLogic(requirement.Output, requirement.Topology)
+	rootTask := tMgr.getProcessingLogic(intent.Output, intent.Topology)
 	if rootTask == nil {
 		ERROR.Println("failed to extract the requested processing logic from the service topology")
 		return
@@ -152,7 +164,7 @@ func (tMgr *TopologyMgr) createNewRequirement(requirement *Requirement) {
 	inputTypes := make([]InputStreamConfig, 0)
 	findInputTypes(rootTask, &inputTypes)
 
-	streams := tMgr.queryStreams(requirement.Restriction, inputTypes)
+	streams := tMgr.queryStreams(intent.Restriction, inputTypes)
 	INFO.Printf("# of streams: %d, \n", len(streams))
 	if len(streams) == 0 {
 		ERROR.Println("no input streams found!!!")
@@ -175,7 +187,7 @@ func (tMgr *TopologyMgr) createNewRequirement(requirement *Requirement) {
 	}
 
 	// STEP 3:  derive deployment plan
-	deploymentPlan := GenerateDeploymentPlan(workers, streams, executionPlan, requirement)
+	deploymentPlan := GenerateDeploymentPlan(workers, streams, executionPlan, intent)
 	if deploymentPlan == nil {
 		ERROR.Println("failed to derive the deployment plan")
 		return
@@ -187,18 +199,18 @@ func (tMgr *TopologyMgr) createNewRequirement(requirement *Requirement) {
 	// STEP 5:  record the processing plane
 	processingPlane := ProcessingPlane{}
 
-	processingPlane.Requirement = requirement
+	processingPlane.Intent = intent
 	processingPlane.ExecutionPlan = executionPlan
 	processingPlane.DeploymentPlan = deploymentPlan
 
-	tMgr.processList[requirement.ID] = &processingPlane
+	tMgr.processList[intent.ID] = &processingPlane
 }
 
-func (tMgr *TopologyMgr) updateExistRequirement(processingPlane *ProcessingPlane, requirement *Requirement) {
+func (tMgr *TopologyMgr) updateExistIntent(processingPlane *ProcessingPlane, intent *Intent) {
 	// STEP 1: preparation
 
 	// find out the trigger processing logic from the service topology
-	rootTask := tMgr.getProcessingLogic(requirement.Output, requirement.Topology)
+	rootTask := tMgr.getProcessingLogic(intent.Output, intent.Topology)
 	if rootTask == nil {
 		ERROR.Println("failed to extract the requested processing logic from the service topology")
 		return
@@ -209,7 +221,7 @@ func (tMgr *TopologyMgr) updateExistRequirement(processingPlane *ProcessingPlane
 	inputTypes := make([]InputStreamConfig, 0)
 	findInputTypes(rootTask, &inputTypes)
 
-	streams := tMgr.queryStreams(requirement.Restriction, inputTypes)
+	streams := tMgr.queryStreams(intent.Restriction, inputTypes)
 	INFO.Printf("# of streams: %d, \n", len(streams))
 	if len(streams) == 0 {
 		ERROR.Println("no input streams found!!!")
@@ -242,7 +254,7 @@ func (tMgr *TopologyMgr) updateExistRequirement(processingPlane *ProcessingPlane
 	INFO.Println("************************END*****************")
 
 	// STEP 4:  figure out the deployment plan for the new task instances
-	deploymentPlan := GenerateDeploymentPlan(workers, streams, deltaExecutionPlan, requirement)
+	deploymentPlan := GenerateDeploymentPlan(workers, streams, deltaExecutionPlan, intent)
 	if deploymentPlan == nil {
 		ERROR.Println("failed to derive the deployment plan")
 		return
@@ -256,12 +268,12 @@ func (tMgr *TopologyMgr) updateExistRequirement(processingPlane *ProcessingPlane
 
 	processingPlane.DeploymentPlan = append(processingPlane.DeploymentPlan, deploymentPlan...)
 
-	processingPlane.Requirement = requirement
+	processingPlane.Intent = intent
 }
 
-func (tMgr *TopologyMgr) cancelRequirement(requirementID string) {
+func (tMgr *TopologyMgr) cancelIntent(intentID string) {
 	// find out tasks that have been scheduled for this topology
-	processingPlane := tMgr.processList[requirementID]
+	processingPlane := tMgr.processList[intentID]
 
 	if processingPlane != nil {
 		// terminate all associated task instances
@@ -310,20 +322,8 @@ func (tMgr *TopologyMgr) queryEdgeNodes() []*ContextObject {
 	entity.IsPattern = true
 	query.Entities = append(query.Entities, entity)
 
-	/*
-		restriction := Restriction{}
-		restriction.Scopes = make([]OperationScope, 0)
-
-		scope := OperationScope{}
-		scope.Type = "stringQuery"
-		scope.Value = "role=EdgeNode"
-		restriction.Scopes = append(restriction.Scopes, scope)
-
-		query.Restriction = restriction
-	*/
-
 	client := NGSI10Client{IoTBrokerURL: tMgr.master.BrokerURL}
-	ctxObjects, err := client.QueryContext(&query, nil)
+	ctxObjects, err := client.QueryContext(&query)
 	if err != nil {
 		ERROR.Println(err)
 	}
@@ -349,7 +349,7 @@ func (tMgr *TopologyMgr) queryStreams(restriction *Restriction, streamTypes []In
 		}
 
 		client := NGSI10Client{IoTBrokerURL: tMgr.master.BrokerURL}
-		ctxObjects, err := client.QueryContext(&query, nil)
+		ctxObjects, err := client.QueryContext(&query)
 		if err != nil {
 			ERROR.Println(err)
 		} else {
@@ -471,3 +471,5 @@ func printExcutionPlan(instances []*TaskInstance) {
 		printExcutionPlan(instance.Children)
 	}
 }
+
+*/

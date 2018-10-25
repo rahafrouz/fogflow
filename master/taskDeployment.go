@@ -12,19 +12,21 @@ import (
 //
 //	assign configured task instances to workers
 //
-func GenerateDeploymentPlan(workerObjects []*ContextObject, streamObjects []*ContextObject, executionPlan []*TaskInstance, requirement *Requirement) []*ScheduledTaskInstance {
+func GenerateDeploymentPlan(workerObjects []*ContextObject, streamObjects []*ContextObject, executionPlan []*TaskInstance, intent *Intent) []*ScheduledTaskInstance {
 	// perform the task assignment
-	switch requirement.ScheduleMethod {
-	case "random":
-		taskAssignmentRandom(workerObjects, streamObjects, executionPlan)
-	case "closest_first":
-		taskAssignmentClosestFirst(workerObjects, streamObjects, executionPlan)
-	default:
-		taskAssignmentRandom(workerObjects, streamObjects, executionPlan)
-	}
+	/*
+		switch intent.ScheduleMethod {
+		case "random":
+			taskAssignmentRandom(workerObjects, streamObjects, executionPlan)
+		case "closest_first":
+			taskAssignmentClosestFirst(workerObjects, streamObjects, executionPlan)
+		default:
+			taskAssignmentRandom(workerObjects, streamObjects, executionPlan)
+		}*/
+	taskAssignmentClosestFirst(workerObjects, streamObjects, executionPlan)
 
 	// prepare the deployment actions to carry out the generated task assignment
-	scheduledTasks := prepareDeploymentActions(executionPlan, requirement.Topology)
+	scheduledTasks := prepareDeploymentActions(executionPlan, intent)
 
 	return scheduledTasks
 }
@@ -32,7 +34,7 @@ func GenerateDeploymentPlan(workerObjects []*ContextObject, streamObjects []*Con
 //
 // prepare the deployment actions to be sent out
 //
-func prepareDeploymentActions(taskInstances []*TaskInstance, topology *Topology) []*ScheduledTaskInstance {
+func prepareDeploymentActions(taskInstances []*TaskInstance, intent *Intent) []*ScheduledTaskInstance {
 	scheduledTasks := make([]*ScheduledTaskInstance, 0)
 
 	for _, instance := range taskInstances {
@@ -55,9 +57,9 @@ func prepareDeploymentActions(taskInstances []*TaskInstance, topology *Topology)
 
 	// put the topology name and priority into each schedule task
 	for _, scheduledTask := range scheduledTasks {
-		scheduledTask.ServiceName = topology.Name
-		scheduledTask.IsExclusive = topology.Priority.IsExclusive
-		scheduledTask.PriorityLevel = topology.Priority.Level
+		scheduledTask.ServiceName = intent.TopologyObject.Name
+		scheduledTask.IsExclusive = intent.Priority.IsExclusive
+		scheduledTask.PriorityLevel = intent.Priority.Level
 	}
 
 	return scheduledTasks
@@ -187,14 +189,8 @@ func closeEdgeNodeFirst(taskInstance *TaskInstance, workers map[string]*WorkerPr
 			closeEdgeNodeFirst(subTask, workers, streams)
 		}
 
-		// find some worker at the parent site
+		// find some worker at the parent site, to be fixed
 		workerID := ""
-		for _, node := range workers {
-			if node.LLocation.SiteNo == parentSiteNo {
-				workerID = node.WID
-				break
-			}
-		}
 
 		if workerID != "" {
 			taskInstance.WorkerID = workerID

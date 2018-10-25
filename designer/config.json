@@ -1,21 +1,14 @@
 {
+    "root_discovery": "127.0.0.1:8090",     
     "webportal_ip": "127.0.0.1",     
-    "coreservice_ip": "127.0.0.1",      
-    "external_hostip": "127.0.0.1",      
+    "coreservice_ip": "127.0.0.1",   
+    "external_hostip": "127.0.0.1",         
     "internal_hostip": "127.0.0.1",  
     "physical_location":{
         "longitude": 139.709059,
-        "latitude": 35.692221,
-        "section": "01",
-        "district": "02",
-        "city": "Tokyo"
+        "latitude": 35.692221
     },
-    "logical_location": {
-        "node_no": 2,
-        "site_no": 2,
-        "layer_no": 2,
-        "parent_site_no": 1
-    },    
+    "geohash_precision": 1,     
     "logging":{
         "info":"stdout",
         "error":"stderr",
@@ -23,18 +16,18 @@
         "debug": "discard"
     },
     "discovery": {
-        "port": 8071,
+        "port": 8090,
         "postgresql": {
             "dbreset": true,
             "username": "postgres",
             "password": "postgres",
             "host": "127.0.0.1",
             "port": 5433,
-            "dbname": "ngsi9"
+            "dbname": "ngsi91"
         }    
     },
     "broker": {
-        "port": 8070,
+        "port": 8071,
         "websocket": 8090        
     },    
     "master": {

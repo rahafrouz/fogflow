@@ -15,11 +15,6 @@ import (
 	. "fogflow/common/ngsi"
 )
 
-type SiteInfo struct {
-	ExternalAddress string `json:"externalAddress"`
-	GeohashID       string `json:"geohashID"`
-}
-
 type TreeNode struct {
 	MyInfo SiteInfo `json:"siteinfo"`
 
@@ -117,21 +112,19 @@ func (r *Routing) Init(rootDiscovery string, mySite SiteInfo) {
 
 		r.GeoRoutingTable[mySite.GeohashID] = &sNode
 	} else {
-		// fetch the routing table from the cloud site
-		r.fetchRoutingTable(rootDiscovery)
-
-		INFO.Println("fetched the global routing table")
-
 		sNode := SiteNode{}
 		sNode.MyInfo.ExternalAddress = mySite.ExternalAddress
+		sNode.MyInfo.IsLocalSite = true
 		sNode.MyInfo.GeohashID = mySite.GeohashID
 		sNode.Children = make([]*SiteNode, 0)
 		sNode.Parent = nil
-
 		r.MySiteNode = &sNode
 
-		r.updateWithNewSite(&sNode)
+		// fetch the routing table from the cloud site
+		r.fetchRoutingTable(rootDiscovery)
+		INFO.Println("fetched the global routing table")
 
+		r.updateWithNewSite(&sNode)
 		INFO.Println("updated my routing table")
 
 		msg := BroadCastMsg{}
@@ -152,18 +145,19 @@ func (r *Routing) fetchRoutingTable(rootSiteIP string) error {
 	defer resp.Body.Close()
 
 	text, _ := ioutil.ReadAll(resp.Body)
-
 	var siteList []TreeNode
-
 	if err := json.Unmarshal(text, &siteList); err != nil {
 		return err
 	}
-
 	INFO.Println(siteList)
-
 	r.Deserialization(siteList)
 
 	return nil
+}
+
+func (r *Routing) MySiteInfo() SiteInfo {
+	mySite := r.MySiteNode
+	return mySite.MyInfo
 }
 
 // go through the tree from the top, find out the leaf node that covers the point
@@ -181,6 +175,31 @@ func (r *Routing) GetSite(location Point) SiteInfo {
 	return leaf.MyInfo
 }
 
+// find out all sites covered by the defined scope
+func (r *Routing) QuerySitesByScope(geoscope OperationScope) []SiteInfo {
+	sites := make([]SiteInfo, 0)
+
+	if geoscope.Type == "local" {
+		sites = append(sites, r.MySiteInfo())
+	} else if geoscope.Type == "global" {
+		r.GetAllSubSites(r.RootSite, &sites)
+	} else if geoscope.Type == "point" {
+		point := geoscope.Value.(Point)
+		site := r.GetSite(point)
+		sites = append(sites, site)
+	} else if geoscope.Type == "circle" {
+		circle := geoscope.Value.(Circle)
+		sitelist := r.GetMiniCoverForCircle(circle)
+		sites = append(sites, sitelist...)
+	} else if geoscope.Type == "polygon" {
+		polygon := geoscope.Value.(Polygon)
+		sitelist := r.GetCoverageForPolygon(polygon)
+		sites = append(sites, sitelist...)
+	}
+
+	return sites
+}
+
 // find out a small set of geohashIDs that can cover the specified polygon
 func (r *Routing) GetCoverageForPolygon(region Polygon) []SiteInfo {
 	involvedSites := make([]SiteInfo, 0)
@@ -193,12 +212,12 @@ func (r *Routing) GetCoverageForPolygon(region Polygon) []SiteInfo {
 		}
 	}
 
-	r.GetAllSubSites(leaf, involvedSites)
+	r.GetAllSubSites(leaf, &involvedSites)
 	return involvedSites
 }
 
-func (r *Routing) GetAllSubSites(curSite *SiteNode, allSites []SiteInfo) {
-	allSites = append(allSites, curSite.MyInfo)
+func (r *Routing) GetAllSubSites(curSite *SiteNode, allSites *[]SiteInfo) {
+	*allSites = append(*allSites, curSite.MyInfo)
 
 	for _, child := range curSite.Children {
 		r.GetAllSubSites(child, allSites)
@@ -261,6 +280,13 @@ func (r *Routing) ReceiveBroadcast(msg *RecvBroadcastMsg) {
 
 		siteNode := SiteNode{}
 		siteNode.MyInfo.ExternalAddress = newSite.ExternalAddress
+
+		if newSite.ExternalAddress == r.MySiteInfo().ExternalAddress {
+			siteNode.MyInfo.IsLocalSite = true
+		} else {
+			siteNode.MyInfo.IsLocalSite = false
+		}
+
 		siteNode.MyInfo.GeohashID = newSite.GeohashID
 		siteNode.Children = make([]*SiteNode, 0)
 		siteNode.Parent = nil
@@ -373,6 +399,13 @@ func (r *Routing) Deserialization(siteList []TreeNode) {
 	for _, node := range siteList {
 		siteNode := SiteNode{}
 		siteNode.MyInfo = node.MyInfo
+
+		if node.MyInfo.ExternalAddress == r.MySiteInfo().ExternalAddress {
+			siteNode.MyInfo.IsLocalSite = true
+		} else {
+			siteNode.MyInfo.IsLocalSite = false
+		}
+
 		r.GeoRoutingTable[node.MyInfo.GeohashID] = &siteNode
 	}
 

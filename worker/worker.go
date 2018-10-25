@@ -141,7 +141,7 @@ func (w *Worker) publishMyself() error {
 	ctxObj.Metadata["location"] = ValueObject{Type: "point", Value: mylocation}
 
 	client := NGSI10Client{IoTBrokerURL: w.selectedBrokerURL}
-	err := client.UpdateContext(&ctxObj)
+	err := client.UpdateContextObject(&ctxObj)
 	return err
 }
 
@@ -188,7 +188,7 @@ func (w *Worker) Process(msg *RecvMessage) error {
 			w.onRemoveInput(msg.From, &flow)
 		}
 
-	case "prefetch_image":
+	case "PREFETCH_IMAGE":
 		imageList := make([]DockerImage, 0)
 		err = json.Unmarshal(msg.PayLoad, &imageList)
 		if err == nil {

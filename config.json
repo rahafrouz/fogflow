@@ -1,4 +1,5 @@
 {
+    "root_discovery": "127.0.0.1:8090",     
     "webportal_ip": "127.0.0.1",     
     "coreservice_ip": "127.0.0.1",   
     "external_hostip": "127.0.0.1",         

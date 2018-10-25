@@ -53,13 +53,34 @@ type ProfileInfo struct {
 	City       string  `json:"city"`
 }
 
-type Requirement struct {
-	ID             string
-	Output         string
-	ScheduleMethod string
+type Trigger struct {
+	Type string
+}
 
-	Restriction *Restriction
-	Topology    *Topology
+type OptPreference struct {
+	Minimize []string
+	Maximize []string
+}
+
+type OptConstraint struct {
+	Subject   string
+	Relation  string
+	Objective string
+}
+
+type QoS struct {
+	Preference  OptPreference
+	Constraints []OptConstraint
+}
+
+type Intent struct {
+	ID             string
+	Trigger        Trigger  `json:"trigger"`
+	QoS            QoS      `json:"qos"`
+	GeoScope       string   `json:"geoscope"`
+	Priority       Priority `json:"priority"`
+	TopologyName   string   `json:"topology"`
+	TopologyObject *Topology
 }
 
 type InputStreamConfig struct {
@@ -97,11 +118,9 @@ type Priority struct {
 }
 
 type Topology struct {
-	Description string   `json:"description"`
-	Name        string   `json:"name"`
-	Priority    Priority `json:"priority"`
-	Trigger     string   `json:"trigger"`
-	Tasks       []Task   `json:"tasks"`
+	Description string `json:"description"`
+	Name        string `json:"name"`
+	Tasks       []Task `json:"tasks"`
 }
 
 type DockerImage struct {

@@ -22,6 +22,8 @@ type ThinBroker struct {
 
 	myEntityId string
 
+	myProfile BrokerProfile
+
 	//mapping from subscriptionID to subscription
 	subscriptions        map[string]*SubscribeContextRequest
 	tmpNGSI10NotifyCache []string
@@ -62,6 +64,9 @@ func (tb *ThinBroker) Start(cfg *Config) {
 	tb.tmpNGSI9NotifyCache = make(map[string]*NotifyContextAvailabilityRequest)
 	tb.main2Other = make(map[string][]string)
 
+	tb.myProfile.BID = tb.myEntityId
+	tb.myProfile.MyURL = tb.MyURL
+
 	// register itself to the IoT discovery
 	tb.registerMyself()
 }
@@ -71,7 +76,6 @@ func (tb *ThinBroker) Stop() {
 	tb.deregisterMyself()
 
 	// cancel all subscriptions that have been issues to outside
-
 }
 
 func (tb *ThinBroker) OnTimer() {
@@ -95,6 +99,14 @@ func (tb *ThinBroker) OnTimer() {
 			tb.sendReliableNotify(elements, sid)
 		}
 	}
+
+	// send heartbeat to IoT Discovery
+	tb.sendHeartBeat()
+}
+
+func (tb *ThinBroker) sendHeartBeat() {
+	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
+	client.SendHeartBeat(&tb.myProfile)
 }
 
 func (tb *ThinBroker) registerMyself() bool {
@@ -274,6 +286,7 @@ func (tb *ThinBroker) QueryContext(w rest.ResponseWriter, r *rest.Request) {
 	matchedCtxElement := make([]ContextElement, 0)
 
 	if r.Header.Get("User-Agent") == "lightweight-iot-broker" {
+		// handle the query from another broker
 		for _, eid := range queryCtxReq.Entities {
 			tb.entities_lock.RLock()
 			if element, exist := tb.entities[eid.ID]; exist {
@@ -281,7 +294,7 @@ func (tb *ThinBroker) QueryContext(w rest.ResponseWriter, r *rest.Request) {
 			}
 			tb.entities_lock.RUnlock()
 		}
-	} else {
+	} else { // handle the query from an external consumer
 		// discover the availability of all matched entities
 		entityMap := tb.discoveryEntities(queryCtxReq.Entities, queryCtxReq.Attributes, queryCtxReq.Restriction)
 
@@ -353,12 +366,153 @@ func (tb *ThinBroker) fetchEntities(ids []EntityId, providerURL string) []Contex
 	queryCtxReq.Entities = ids
 
 	client := NGSI10Client{IoTBrokerURL: providerURL}
-	header := map[string]string{"User-Agent": "lightweight-iot-broker"}
-	ctxElementList, _ := client.InternalQueryContext(&queryCtxReq, &header)
+	ctxElementList, _ := client.InternalQueryContext(&queryCtxReq)
 	return ctxElementList
 }
 
 func (tb *ThinBroker) UpdateContext(w rest.ResponseWriter, r *rest.Request) {
+	updateCtxReq := UpdateContextRequest{}
+
+	err := r.DecodeJsonPayload(&updateCtxReq)
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// send out the response
+	updateCtxResp := UpdateContextResponse{}
+	updateCtxResp.ErrorCode.Code = 200
+	updateCtxResp.ErrorCode.ReasonPhrase = "OK"
+	w.WriteJson(&updateCtxResp)
+
+	if r.Header.Get("User-Agent") == "lightweight-iot-broker" {
+		tb.handleInternalUpdateContext(&updateCtxReq)
+	} else {
+		tb.handleExternalUpdateContext(&updateCtxReq)
+	}
+}
+
+// handle context updates from external applications/devices
+func (tb *ThinBroker) handleInternalUpdateContext(updateCtxReq *UpdateContextRequest) {
+	switch updateCtxReq.UpdateAction {
+	case "UPDATE":
+		for _, ctxElem := range updateCtxReq.ContextElements {
+			tb.UpdateContext2LocalSite(&ctxElem)
+		}
+	case "DELETE":
+		for _, ctxElem := range updateCtxReq.ContextElements {
+			tb.deleteEntity(ctxElem.Entity.ID)
+		}
+	}
+}
+
+// handle context updates forwarded by IoT Discovery
+func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextRequest) {
+	// perform the update action accordingly
+	switch updateCtxReq.UpdateAction {
+	case "UPDATE":
+		for _, ctxElem := range updateCtxReq.ContextElements {
+			geoscope := ctxElem.GetScope()
+
+			INFO.Println("GEOSCOPE: ")
+			INFO.Println(geoscope)
+
+			if geoscope.Type == "local" {
+				tb.UpdateContext2LocalSite(&ctxElem)
+			} else {
+				siteList, err := tb.querySiteListByScope(geoscope)
+				if err != nil {
+					ERROR.Println("error happens when querying the site list from IoT Discovery")
+					ERROR.Println(err)
+				} else {
+					INFO.Println(siteList)
+					for _, site := range siteList {
+						if site.IsLocalSite == true {
+							tb.UpdateContext2LocalSite(&ctxElem)
+						} else {
+							tb.UpdateContext2RemoteSite(&ctxElem, updateCtxReq.UpdateAction, site)
+						}
+					}
+				}
+			}
+		}
+
+	case "DELETE":
+		fmt.Println("===========delete========")
+		fmt.Printf("%+v\r\n", updateCtxReq)
+
+		for _, ctxElem := range updateCtxReq.ContextElements {
+			element := tb.getEntity(ctxElem.Entity.ID)
+			if element != nil {
+				geoscope := element.GetScope()
+				if geoscope.Type == "local" {
+					// remove this entity from the local entity map
+					tb.deleteEntity(ctxElem.Entity.ID)
+				} else {
+					siteList, err := tb.querySiteListByScope(geoscope)
+					if err != nil {
+						ERROR.Println("error happens when querying the site list from IoT Discovery")
+						ERROR.Println(err)
+					} else {
+						for _, site := range siteList {
+							if site.IsLocalSite == true {
+								// remove this entity from the local entity map
+								tb.deleteEntity(ctxElem.Entity.ID)
+							} else {
+								tb.UpdateContext2RemoteSite(&ctxElem, updateCtxReq.UpdateAction, site)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func (tb *ThinBroker) querySiteListByScope(geoscope OperationScope) ([]SiteInfo, error) {
+	fmt.Println("query sites by geoscope")
+	fmt.Println(tb.IoTDiscoveryURL)
+	fmt.Println(geoscope)
+
+	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
+	return client.QuerySiteList(geoscope)
+}
+
+func (tb *ThinBroker) UpdateContext2LocalSite(ctxElem *ContextElement) {
+	tb.entities_lock.Lock()
+	eid := ctxElem.Entity.ID
+	hasUpdatedMetadata := hasUpdatedMetadata(ctxElem, tb.entities[eid])
+	tb.entities_lock.Unlock()
+
+	// propogate this update to its subscribers
+	go tb.notifySubscribers(ctxElem)
+
+	// apply the new update to the entity in the entity map
+	tb.updateContextElement(ctxElem)
+
+	// register the entity if there is any changes on attribute list, domain metadata
+	if hasUpdatedMetadata == true {
+		//fmt.Println("===========has updated metadata============")
+		tb.registerContextElement(ctxElem)
+	}
+}
+
+func (tb *ThinBroker) UpdateContext2RemoteSite(ctxElem *ContextElement, updateAction string, site SiteInfo) {
+	brokerURL := "http://" + site.ExternalAddress + "/proxy"
+	switch updateAction {
+	case "UPDATE":
+		INFO.Println(brokerURL)
+		client := NGSI10Client{IoTBrokerURL: brokerURL}
+		client.UpdateContext(ctxElem)
+
+	case "DELETE":
+		client := NGSI10Client{IoTBrokerURL: brokerURL}
+		client.DeleteContext(&ctxElem.Entity)
+	}
+}
+
+/*
+func (tb *ThinBroker) UpdateContext2LocalSite(w rest.ResponseWriter, r *rest.Request) {
 	updateCtxReq := UpdateContextRequest{}
 
 	err := r.DecodeJsonPayload(&updateCtxReq)
@@ -405,6 +559,7 @@ func (tb *ThinBroker) UpdateContext(w rest.ResponseWriter, r *rest.Request) {
 		}
 	}
 }
+*/
 
 func (tb *ThinBroker) NotifyContext(w rest.ResponseWriter, r *rest.Request) {
 	notifyCtxReq := NotifyContextRequest{}

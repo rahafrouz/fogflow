@@ -422,7 +422,7 @@ func (e *Executor) registerTask(task *ScheduledTaskInstance, portNum string, con
 	ctxObj.Metadata["worker"] = ValueObject{Type: "string", Value: task.WorkerID}
 
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
-	err := client.UpdateContext(&ctxObj)
+	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -439,7 +439,7 @@ func (e *Executor) updateTask(taskID string, status string) {
 	ctxObj.Attributes["status"] = ValueObject{Type: "string", Value: status}
 
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
-	err := client.UpdateContext(&ctxObj)
+	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -1,12 +1,14 @@
 {
     "root_discovery": "127.0.0.1:8090",     
-    "external_IP": "127.0.0.1",     
-    "internal_IP": "127.0.0.1", 
+    "webportal_ip": "127.0.0.1",     
+    "coreservice_ip": "127.0.0.1",   
+    "external_hostip": "127.0.0.1",         
+    "internal_hostip": "127.0.0.1",  
     "physical_location":{
         "longitude": 139.709059,
         "latitude": 35.692221
     },
-    "geohash_precision": 3,     
+    "geohash_precision": 2,     
     "logging":{
         "info":"stdout",
         "error":"stderr",
@@ -14,14 +16,14 @@
         "debug": "discard"
     },
     "discovery": {
-        "port": 8096,
+        "port": 8094,
         "postgresql": {
             "dbreset": true,
             "username": "postgres",
             "password": "postgres",
             "host": "127.0.0.1",
             "port": 5433,
-            "dbname": "ngsi96"
+            "dbname": "ngsi92"
         }    
     },
     "broker": {

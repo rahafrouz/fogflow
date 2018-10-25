@@ -14,6 +14,7 @@ import (
 	"github.com/mmcloughlin/geohash"
 
 	. "fogflow/common/config"
+	. "fogflow/common/ngsi"
 )
 
 func main() {
@@ -29,6 +30,7 @@ func main() {
 	// load the routing table and announce itself
 	rTable := Routing{}
 	mySiteInfo := SiteInfo{}
+	mySiteInfo.IsLocalSite = true
 	mySiteInfo.ExternalAddress = fmt.Sprintf("%s:%d", config.ExternalIP, config.Discovery.Port)
 	mySiteInfo.GeohashID = geohash.EncodeWithPrecision(config.PLocation.Latitude,
 		config.PLocation.Longitude,
@@ -61,9 +63,16 @@ func main() {
 		// maintain the routing tables for distributed discovery
 		rest.Post("/ngsi9/broadcast", iotDiscovery.onBroadcast),
 		rest.Get("/ngsi9/sitelist", iotDiscovery.getAllSites),
+		rest.Post("/ngsi9/querysite", iotDiscovery.onQuerySiteByScope),
 
 		// for health check
 		rest.Get("/ngsi9/status", iotDiscovery.getStatus),
+
+		// hearbeat from active brokers
+		rest.Post("/ngsi9/broker", iotDiscovery.onBrokerHeartbeat),
+
+		// proxy to forward the entity update from other site to the broker within the local site
+		rest.Post("/proxy/updateContext", iotDiscovery.onForwardContextUpdate),
 	)
 	if err != nil {
 		log.Fatal(err)

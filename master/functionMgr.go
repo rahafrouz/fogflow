@@ -675,7 +675,7 @@ func (fMgr *FunctionMgr) handleFogFunctionUpdate(responses []ContextElementRespo
 
 	INFO.Printf("%+v\r\n", ctxObj)
 
-	// handle the incoming new requirement to trigger data processing tasks
+	// handle the incoming new intent to trigger data processing tasks
 	if ctxObj.Attributes["status"].Value == "enabled" {
 		fogFunc := fMgr.getFogFunction(ctxObj.Entity.ID)
 		fMgr.enableFogFunction(fogFunc)

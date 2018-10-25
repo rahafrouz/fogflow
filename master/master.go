@@ -159,7 +159,7 @@ func (master *Master) registerMyself() {
 	ctxObj.Metadata["location"] = ValueObject{Type: "point", Value: mylocation}
 
 	client := NGSI10Client{IoTBrokerURL: master.BrokerURL}
-	err := client.UpdateContext(&ctxObj)
+	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
 		ERROR.Println(err)
 	}
@@ -179,10 +179,9 @@ func (master *Master) unregisterMyself() {
 }
 
 func (master *Master) triggerInitialSubscriptions() {
-	master.subscribeContextEntity("Topology")
-	master.subscribeContextEntity("Requirement")
 	master.subscribeContextEntity("DockerImage")
-	master.subscribeContextEntity("FogFunction")
+	master.subscribeContextEntity("Topology")
+	master.subscribeContextEntity("Intent")
 }
 
 func (master *Master) subscribeContextEntity(entityType string) {
@@ -210,62 +209,54 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 	stype := master.subID2Type[sid]
 
 	DEBUG.Println("NGSI10 NOTIFY ", sid, " , ", stype)
+	contextObj := CtxElement2Object(&(notifyCtxReq.ContextResponses[0].ContextElement))
+	DEBUG.Println(contextObj)
 
 	switch stype {
+	// docker images of each operator
 	case "DockerImage":
-		master.handleDockerImageRegistration(notifyCtxReq.ContextResponses, sid)
+		master.handleDockerImageRegistration(contextObj)
 
-	//output-driven service orchestration for service topology
+	// topology to define service template
 	case "Topology":
-		master.topologyMgr.handleTopologyUpdate(notifyCtxReq.ContextResponses, sid)
-	case "Requirement":
-		master.topologyMgr.handleRequirementUpdate(notifyCtxReq.ContextResponses, sid)
+		master.topologyMgr.handleTopologyUpdate(contextObj)
 
-	//input-driven service orchestration for serverless function
-	case "FogFunction":
-		master.functionMgr.handleFogFunctionUpdate(notifyCtxReq.ContextResponses, sid)
+	// service orchestration is triggerred by an user-defined intent
+	case "Intent":
+		master.topologyMgr.handleIntentUpdate(contextObj)
 	}
 }
 
 //
 // to handle the management of docker images
 //
-func (master *Master) handleDockerImageRegistration(responses []ContextElementResponse, sid string) {
-	fetchedImageList := make([]DockerImage, 0)
+func (master *Master) handleDockerImageRegistration(dockerImageCtxObj *ContextObject) {
+	INFO.Printf("%+v\r\n", dockerImageCtxObj)
 
-	for _, response := range responses {
-		dockerImageCtxObj := CtxElement2Object(&(response.ContextElement))
-		//INFO.Printf("%+v\r\n", dockerImageCtxObj)
+	dockerImage := DockerImage{}
+	dockerImage.OperatorName = dockerImageCtxObj.Attributes["operator"].Value.(string)
+	dockerImage.ImageName = dockerImageCtxObj.Attributes["image"].Value.(string)
+	dockerImage.ImageTag = dockerImageCtxObj.Attributes["tag"].Value.(string)
+	dockerImage.TargetedHWType = dockerImageCtxObj.Attributes["hwType"].Value.(string)
+	dockerImage.TargetedOSType = dockerImageCtxObj.Attributes["osType"].Value.(string)
+	dockerImage.Prefetched = dockerImageCtxObj.Attributes["prefetched"].Value.(bool)
 
-		dockerImage := DockerImage{}
-		dockerImage.OperatorName = dockerImageCtxObj.Attributes["operator"].Value.(string)
-		dockerImage.ImageName = dockerImageCtxObj.Attributes["image"].Value.(string)
-		dockerImage.ImageTag = dockerImageCtxObj.Attributes["tag"].Value.(string)
-		dockerImage.TargetedHWType = dockerImageCtxObj.Attributes["hwType"].Value.(string)
-		dockerImage.TargetedOSType = dockerImageCtxObj.Attributes["osType"].Value.(string)
-		dockerImage.Prefetched = dockerImageCtxObj.Attributes["prefetched"].Value.(bool)
+	master.operatorList_lock.Lock()
+	master.operatorList[dockerImage.OperatorName] = append(master.operatorList[dockerImage.OperatorName], dockerImage)
+	master.operatorList_lock.Unlock()
 
-		master.operatorList_lock.Lock()
-		master.operatorList[dockerImage.OperatorName] = append(master.operatorList[dockerImage.OperatorName], dockerImage)
-		master.operatorList_lock.Unlock()
-
-		if dockerImage.Prefetched == true {
-			// inform all workers to prefetch this docker image in advance
-			fetchedImageList = append(fetchedImageList, dockerImage)
-		}
-	}
-
-	if len(fetchedImageList) > 0 {
-		master.prefetchDockerImages(fetchedImageList)
+	if dockerImage.Prefetched == true {
+		// inform all workers to prefetch this docker image in advance
+		master.prefetchDockerImages(dockerImage)
 	}
 }
 
-func (master *Master) prefetchDockerImages(imageList []DockerImage) {
+func (master *Master) prefetchDockerImages(image DockerImage) {
 	workers := master.queryWorkers()
 
 	for _, worker := range workers {
 		workerID := worker.Entity.ID
-		taskMsg := SendMessage{Type: "prefetch_image", RoutingKey: workerID + ".", From: master.id, PayLoad: imageList}
+		taskMsg := SendMessage{Type: "PREFETCH_IMAGE", RoutingKey: workerID + ".", From: master.id, PayLoad: image}
 		master.communicator.Publish(&taskMsg)
 	}
 }
@@ -281,7 +272,7 @@ func (master *Master) queryWorkers() []*ContextObject {
 	query.Entities = append(query.Entities, entity)
 
 	client := NGSI10Client{IoTBrokerURL: master.BrokerURL}
-	ctxObjects, err := client.QueryContext(&query, nil)
+	ctxObjects, err := client.QueryContext(&query)
 	if err != nil {
 		ERROR.Println(err)
 	}
@@ -473,7 +464,7 @@ func (master *Master) RetrieveContextEntity(eid string) *ContextObject {
 	query.Entities = append(query.Entities, entity)
 
 	client := NGSI10Client{IoTBrokerURL: master.BrokerURL}
-	ctxObjects, err := client.QueryContext(&query, nil)
+	ctxObjects, err := client.QueryContext(&query)
 	if err == nil && ctxObjects != nil && len(ctxObjects) > 0 {
 		return ctxObjects[0]
 	} else {

@@ -39,7 +39,7 @@ var myToplogyExamples = [
 
 
 addMenuItem('Topology', showTopologies);         
-addMenuItem('Requirement', showRequirements);         
+addMenuItem('Intent', showIntents);         
 addMenuItem('Editor', showEditor);         
 
 showTopologies();
@@ -101,23 +101,15 @@ function showEditor()
     
     html += '<div id="topologySpecification" class="form-horizontal"><fieldset>';            
     
-    html += '<div class="control-group"><label class="control-label">topology name</label>';
+    html += '<div class="control-group"><label class="control-label">name</label>';
     html += '<div class="controls"><input type="text" class="input-large" id="topologyName">';
     html += '</div></div>';
     
-    html += '<div class="control-group"><label class="control-label">service description</label>';
+    html += '<div class="control-group"><label class="control-label">description</label>';
     html += '<div class="controls"><textarea class="form-control" rows="3" id="serviceDescription"></textarea>';
-    html += '</div></div>';    
-    
-    html += '<div class="control-group"><label class="control-label">priority</label><div class="controls">';
-    html += '<select id="priorityLevel"><option>low</option><option>middle</option><option>high</option></select>';    
-    html += '</div></div>';    
-    
-    html += '<div class="control-group"><label class="control-label">resource usage</label><div class="controls">';
-    html += '<select id="resouceUsage"><option>inclusive</option><option>exclusive</option></select>';
-    html += '</div></div>';        
+    html += '</div></div>';      
            
-    html += '<div class="control-group"><label class="control-label">data processing graph</label><div class="controls">';
+    html += '<div class="control-group"><label class="control-label">topology</label><div class="controls">';
     html += '<span>  </span><button id="cleanBoard" type="button" class="btn btn-default">Clean Board</button>';                            
     html += '<span>  </span><button id="saveBoard" type="button" class="btn btn-default">Save Board</button>';  
     html += '<span>  </span><button id="generateTopology" type="button" class="btn btn-primary">Generate Topology</button>';                                      
@@ -408,9 +400,9 @@ function displayTopologyList(topologies)
    
     html += '<thead><tr>';
     html += '<th>ID</th>';
-    html += '<th>Type</th>';
-    html += '<th>Status</th>';    
-    html += '<th>Template</th>';    
+    html += '<th>Name</th>';        
+    html += '<th>Description</th>';            
+    html += '<th>Tasks</th>';    
     html += '</tr></thead>';    
        
     for(var i=0; i<topologies.length; i++){
@@ -421,10 +413,13 @@ function displayTopologyList(topologies)
 		html += '<br><button id="editor-' + topology.entityId.id + '" type="button" class="btn btn-default">editor</button>';
 		html += '<br><button id="delete-' + topology.entityId.id + '" type="button" class="btn btn-default">delete</button>';
 		html += '</td>';        
-		html += '<td>' + topology.entityId.type + '</td>'; 
-                        
-		html += '<td>' + topology.attributes.status.value + '</td>';        
-		html += '<td>' + JSON.stringify(topology.attributes.template.value) + '</td>';
+               
+        topology = topology.attributes.template.value;
+        
+		html += '<td>' + topology.name + '</td>';                                 
+		html += '<td>' + topology.description + '</td>';                
+		html += '<td>' + JSON.stringify(topology.tasks) + '</td>';                
+        
 		html += '</tr>';	
 	}
        
@@ -453,7 +448,7 @@ function displayTopologyList(topologies)
 	}        
 }
 
-function showRequirements() 
+function showIntents() 
 {        
     $('#info').html('list of scoped requirements to trigger processing tasks');
 
