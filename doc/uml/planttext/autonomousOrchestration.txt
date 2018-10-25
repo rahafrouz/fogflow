@@ -1,0 +1,37 @@
+@startuml
+
+title "Intent-based Orchestration for Lost Child Finder"
+
+autonumber
+
+
+User -> Designer: specify a scoped-based intent {scope(S), topology(T), Trigger(G)} 
+Designer -> CloudBroker: intent entity with S
+CloudBroker -> CloudDiscovery: intent {S}
+
+DestMaster -> DestBroker: subscribe to intent {scope = local}
+
+CloudDiscovery -> CloudDiscovery: look up which site can cover S with minimal size
+CloudDiscovery -> CloudBroker: return which site to forward this intent
+CloudBroker -> DestBroker: intent is forwarded to the destination site
+
+DestBroker -> DestDiscovery: update its own discovery
+DestBroker -> DestMaster: notify the local Master, intent {S, T, G}
+
+DestMaster -> DestMaster: intent partition algorithm, break T from service level into function level, T(f1, f2, f3, ...)
+DestMaster -> DestBroker: delegate new intent to others 
+
+DestMaster -> DestMaster: task generation based on availabile context
+DestMaster -> DestMaster: task deployment based on latest view of all workers in the local site
+
+DestBroker -> DestDiscovery: look up which site is responsible for the scope of this new intent
+DestBroker -> ChildBroker: forward it to child site
+
+ChildMaster -> ChildBroker: subscribe to intent {scope = local}
+ChildBroker -> ChildDiscovery: update its availability in the local site
+
+ChildMaster -> ChildMaster: task generation based on availabile context
+ChildMaster -> ChildMaster: task deployment based on latest view of all workers in the local site
+
+
+@enduml
