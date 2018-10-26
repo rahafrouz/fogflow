@@ -125,6 +125,7 @@ func (r *Routing) Init(rootDiscovery string, mySite SiteInfo) {
 		INFO.Println("fetched the global routing table")
 
 		r.updateWithNewSite(&sNode)
+
 		INFO.Println("updated my routing table")
 
 		msg := BroadCastMsg{}
@@ -145,11 +146,15 @@ func (r *Routing) fetchRoutingTable(rootSiteIP string) error {
 	defer resp.Body.Close()
 
 	text, _ := ioutil.ReadAll(resp.Body)
+
 	var siteList []TreeNode
+
 	if err := json.Unmarshal(text, &siteList); err != nil {
 		return err
 	}
+
 	INFO.Println(siteList)
+
 	r.Deserialization(siteList)
 
 	return nil
@@ -218,7 +223,6 @@ func (r *Routing) GetCoverageForPolygon(region Polygon) []SiteInfo {
 
 func (r *Routing) GetAllSubSites(curSite *SiteNode, allSites *[]SiteInfo) {
 	*allSites = append(*allSites, curSite.MyInfo)
-
 	for _, child := range curSite.Children {
 		r.GetAllSubSites(child, allSites)
 	}

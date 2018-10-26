@@ -179,16 +179,12 @@ func (fd *FastDiscovery) deleteRegistration(registration *ContextRegistration) {
 }
 
 func (fd *FastDiscovery) SiteDiscoverContextAvailability(w rest.ResponseWriter, r *rest.Request) {
-	INFO.Println("START TO HANDLE INTERSITE DISCOVERY=======")
-
 	discoverCtxReq := DiscoverContextAvailabilityRequest{}
 	err := r.DecodeJsonPayload(&discoverCtxReq)
 	if err != nil {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	INFO.Println("START TO HANDLE INTERSITE DISCOVERY!!!!")
 
 	// query database to get the result
 	result := fd.handleQueryCtxAvailability(&discoverCtxReq)
@@ -344,6 +340,44 @@ func (fd *FastDiscovery) SiteSubscribeContextAvailability(w rest.ResponseWriter,
 	// trigger the process to send out the matched context availability infomation to the subscriber
 	go fd.handleSubscribeCtxAvailability(&subscribeCtxAvailabilityReq)
 }
+
+/*
+func (fd *FastDiscovery) SubscribeContextAvailability(w rest.ResponseWriter, r *rest.Request) {
+	subscribeCtxAvailabilityReq := SubscribeContextAvailabilityRequest{}
+	err := r.DecodeJsonPayload(&subscribeCtxAvailabilityReq)
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// generate a new subscription id
+	u1, err := uuid.NewV4()
+	if err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	subID := u1.String()
+
+	subscribeCtxAvailabilityReq.SubscriptionId = subID
+
+	// add the new subscription
+	fd.subscriptions_lock.Lock()
+	fd.subscriptions[subID] = &subscribeCtxAvailabilityReq
+	fd.subscriptions_lock.Unlock()
+
+	// send out the response
+	subscribeCtxAvailabilityResp := SubscribeContextAvailabilityResponse{}
+	subscribeCtxAvailabilityResp.SubscriptionId = subID
+	subscribeCtxAvailabilityResp.Duration = subscribeCtxAvailabilityReq.Duration
+	subscribeCtxAvailabilityResp.ErrorCode.Code = 200
+	subscribeCtxAvailabilityResp.ErrorCode.ReasonPhrase = "OK"
+
+	w.WriteJson(&subscribeCtxAvailabilityResp)
+
+	// trigger the process to send out the matched context availability infomation to the subscriber
+	go fd.handleSubscribeCtxAvailability(&subscribeCtxAvailabilityReq)
+}
+*/
 
 func (fd *FastDiscovery) SubscribeContextAvailability(w rest.ResponseWriter, r *rest.Request) {
 	subscribeCtxAvailabilityReq := SubscribeContextAvailabilityRequest{}

@@ -189,7 +189,6 @@ func closeEdgeNodeFirst(taskInstance *TaskInstance, workers map[string]*WorkerPr
 			closeEdgeNodeFirst(subTask, workers, streams)
 		}
 
-		// find some worker at the parent site, to be fixed
 		workerID := ""
 
 		if workerID != "" {

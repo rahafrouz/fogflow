@@ -23,7 +23,11 @@ func startAgent(port int) {
 }
 
 func main() {
+<<<<<<< HEAD
 	myPort := flag.Int("p", 6666, "the port of this agent")
+=======
+	myPort := flag.Int("p", 8090, "the port of this agent")
+>>>>>>> d42611fb68e703d28630e74da1541f6bacf4d928
 	flag.Parse()
 
 	startAgent(*myPort)
