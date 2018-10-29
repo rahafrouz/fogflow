@@ -37,10 +37,9 @@ var myToplogyExamples = [
 }
 ];
 
-
+addMenuItem('Editor', showEditor);         
 addMenuItem('Topology', showTopologies);         
 addMenuItem('Intent', showIntents);         
-addMenuItem('Editor', showEditor);         
 
 showTopologies();
 
@@ -195,34 +194,25 @@ function deleteTopology(topologyEntity)
     });  	
 }
 
+
+
 function queryOperatorList()
 {
     var queryReq = {}
-    queryReq.entities = [{type:'DockerImage', isPattern: true}];           
+    queryReq.entities = [{type:'Operator', isPattern: true}];           
     
-    client.queryContext(queryReq).then( function(imageList) {
-        console.log(imageList);
-
-        for(var i=0; i<imageList.length; i++){
-            var dockerImage = imageList[i];            
-            var operatorName = dockerImage.attributes.operator.value;
-            
-            var exist = false;
-            for(var j=0; j<operatorList.length; j++){
-                if(operatorList[j] == operatorName){
-                    exist = true;
-                    break;
-                }
-            }
-            
-            if(exist == false){
-                operatorList.push(operatorName);                
-            }            
-        }
+    client.queryContext(queryReq).then( function(operators) {
+        for(var i=0; i<operators.length; i++){
+            var entity = operators[i];        
+            var operator = entity.attributes.operator.value;                 
+            operatorList.push(operator.name);              
+    	} 
+        
+        // add it into the select list        
     }).catch(function(error) {
         console.log(error);
-        console.log('failed to query the operator list');
-    });     
+        console.log('failed to query context');
+    });    
 }
 
 function boardScene2Topology(scene)

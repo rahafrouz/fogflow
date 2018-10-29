@@ -6,8 +6,9 @@ var handlers = {};
 //connect to the broker
 var client = new NGSI10Client(config.brokerURL);
 
+console.log(config.brokerURL);
+
 addMenuItem('Operator', showOperator);  
-addMenuItem('FunctionCode', showFunctionCode);  
 addMenuItem('DockerImage', showDockerImage);    
 
 initDockerImageList();
@@ -37,215 +38,181 @@ function selectMenuItem(name) {
 }
 
 
-
-function showDesignBoard()
+function showOperator()
 {
-    var html = '';
+    var queryReq = {}
+    queryReq.entities = [{type:'Operator', isPattern: true}];           
     
-    html += '<div class="input-prepend">';         
-    html += '<button id="cleanBoard" type="button" class="btn btn-default">Clean Board</button>';                            
-    html += '<button id="saveBoard" type="button" class="btn btn-default">Save Board</button>';                                
-    html += '<button id="generateFunction" type="button" class="btn btn-primary">Create a Fog Function</button>';        
-    html += '<button id="displayFogFunctionObject" type="button" class="btn btn-default">Display as JSON</button>';         
-    html += '</div>'; 
-        
-    html += '<div id="blocks" style="width:1000px; height:400px"></div>';
-    
-    html += '<div style="margin-top: 10px;"><h4 class="text-left">Function code</h4>';
-    html += '<select id="codeType"><option value="javascript">javascript</option><option value="python"">python</option><option value="docker"">dockerimage</option></select>';    
-    html += '<div id="codeBoard"></div>';            
-    html += '</div>'    
-    
-    $('#content').html(html);  
-    
-    var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-    $('#codeBoard').html(boardHTML);
-    $('#codeText').val(template.javascript);
-   
-	
-    var blocks = new Blocks();
- 
-    // prepare the configuration
-    var config = {};
-
-    // prepare the design board
-    registerAllBlocks(blocks);
-  
-    blocks.run('#blocks');
-    
-    if (CurrentScene != null ) {
-		console.log(CurrentScene);
-        blocks.importData(CurrentScene);
-    }  		
-	
-    blocks.ready(function() {                
-        $('#generateFunction').click(function() {
-            generateFogfunction(blocks.export());
-        });    
-        $('#cleanBoard').click(function() {
-            blocks.clear();
-        });                      
-        $('#saveBoard').click(function() {
-            CurrentScene = blocks.export();
-        });                              
-        $('#displayFogFunctionObject').click(function() {
-            var board = blocks.export();
-            var fogfunction = boardScene2fogfunction(board);    
-            var ffObj = {
-                fogfunction: fogfunction,
-                designboard: board
-            };
-            alert(JSON.stringify(ffObj));
-        });                                      
-    }); 	  	
-}
-
-
-function showEditor() 
-{
-    $('#info').html('editor to design a fog function');
-    
-	showDesignBoard();
-    
-    $('#codeType').change(function() {
-        var fType = $(this).val();
-        switch(fType) {
-            case 'javascript':
-                var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-                $('#codeBoard').html(boardHTML);
-                $('#codeText').val(template.javascript);
-                break;
-            case 'python':
-                var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-                $('#codeBoard').html(boardHTML);
-                $('#codeText').val(template.python);
-                break;
-            case 'docker':
-                var boardHTML = '<select id="codeImage"></select>';
-                $('#codeBoard').html(boardHTML);                
-                for(var i=0; i<operatorList.length; i++){
-                    var operatorName = operatorList[i];
-                    $('#codeImage').append($("<option></option>").attr("value", operatorName).text(operatorName));                                                    
-                }                
-                break;
-        }        
+    client.queryContext(queryReq).then( function(operatorList) {
+        console.log(operatorList);
+        displayOperatorList(operatorList);
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query context');
     });    
-    
-    //initialize the content in the code textarea
-    $('#codeText').val(template.javascript);              
 }
 
+function queryOperatorList()
+{
+    var queryReq = {}
+    queryReq.entities = [{type:'Operator', isPattern: true}];           
+    
+    client.queryContext(queryReq).then( function(operators) {
+        for(var i=0; i<operators.length; i++){
+            var entity = operators[i];        
+            var operator = entity.attributes.operator.value;     
+            
+            var option = document.createElement("option");
+            
+            option.text = operator.name;
+            
+            var operatorList = document.getElementById("OperatorList");                           
+            operatorList.add(option);
+    	} 
+        
+        // add it into the select list        
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query context');
+    });    
+}
 
-function showOperator() 
+function displayOperatorList(operators) 
 {
     $('#info').html('list of all registered operators');
-
-    var queryReq = {}
-    queryReq.entities = [{type:'DockerImage', isPattern: true}];           
     
-    client.queryContext(queryReq).then( function(imageList) {
-        console.log(imageList);
+    var html = '<div style="margin-bottom: 10px;"><button id="registerOperator" type="button" class="btn btn-primary">register</button></div>';
+    html += '<div id="operatorList"></div>';
 
-        for(var i=0; i<imageList.length; i++){
-            var dockerImage = imageList[i];            
-            var operatorName = dockerImage.attributes.operator.value;
-            
-            var exist = false;
-            for(var j=0; j<operatorList.length; j++){
-                if(operatorList[j] == operatorName){
-                    exist = true;
-                    break;
-                }
-            }
-            
-            if(exist == false){
-                operatorList.push(operatorName);                
-            }            
-        }
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query the operator list');
+	$('#content').html(html);   
+      
+    $( "#registerOperator" ).click(function() {
+        showOperatorEditor();
     });     
-}
 
-function generateFogfunction(scene)
-{
-    // construct the fog function object based on the design board
-    var fogfunction = boardScene2fogfunction(scene);    
+    if(operators == null || operators.length == 0){
+        $('#operatorList').html('');           
+        return        
+    }
+    
+    var html = '<table class="table table-striped table-bordered table-condensed">';
    
-    // submit this fog function
-    submitFunction(fogfunction, scene);
+    html += '<thead><tr>';
+    html += '<th>Operator</th>';    
+    html += '<th>Name</th>';
+    html += '<th>Description</th>';    
+    html += '<th>#Parameters</th>';
+    html += '<th>#Implementations</th>';
+    html += '</tr></thead>';    
+           
+    for(var i=0; i<operators.length; i++){
+        var entity = operators[i];
+        
+        var operator = entity.attributes.operator.value;
+		
+        console.log(operator);
+        
+        html += '<tr>'; 
+		html += '<td>' + entity.entityId.id + '</td>';                        
+		html += '<td>' + operator.name + '</td>';                
+		html += '<td>' + operator.description + '</td>';                
+		html += '<td>' + operator.parameters.length + '</td>';        
+		html += '<td>' + 0 + '</td>';                
+                              
+		html += '</tr>';	                        
+	}    
+       
+    html += '</table>';  
+    
+	$('#operatorList').html(html);      
 }
 
 
-function queryFunctionList() 
+function showOperatorEditor() 
 {
-    var queryReq = {}
-    queryReq.entities = [{type:'FogFunction', isPattern: true}];
-    client.queryContext(queryReq).then( function(fogFunctionList) {
-        if (fogFunctionList.length == 0) {
-			initFogFunctionExamples();
-		}
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query task');
-    });          
+    $('#info').html('to specify an operator');
+
+    var html = '';
+    
+    html += '<div><button id="generateOperator" type="button" class="btn btn-primary">Submit</button></div>';                  
+    html += '<div id="blocks" style="width:1000px; margin-top: 5px; height:400px"></div>';
+    
+    $('#content').html(html);    
+
+    blocks = new Blocks();
+ 
+    registerAllBlocks(blocks);
+
+    blocks.run('#blocks');
+    
+    blocks.types.addCompatibility('string', 'choice');
+            
+    blocks.ready(function() {                
+        // associate functions to clickable buttons
+        $('#generateOperator').click(function() {
+            generateOperator(blocks.export());
+        });    
+    });    
 }
 
+function generateOperator(scene)
+{
+    // construct the operator based on the design board
+    var operator = boardScene2Operator(scene);    
+   
+    // submit this operator
+    submitOperator(operator, scene);
+}
 
-function boardScene2fogfunction(scene)
+function submitOperator(operator, designboard)
+{
+    var operatorObj = {};
+    
+    operatorObj.entityId = {
+        id : 'Operator.' + operator.name, 
+        type: 'Operator',
+        isPattern: false
+    };
+    
+    operatorObj.attributes = {};   
+    operatorObj.attributes.designboard = {type: 'object', value: designboard};    	
+    operatorObj.attributes.operator = {type: 'object', value: operator};    
+    
+    client.updateContext(operatorObj).then( function(data) {
+        console.log(data);                
+        showOperator();                       
+    }).catch( function(error) {
+        console.log('failed to submit the defined operator');
+    });           
+}
+
+function boardScene2Operator(scene)
 {
     console.log(scene);  
-    var fogfunction = {};    
-    
-    // check the function type and the provided function code
-    var fType = $('#codeType option:selected').val();    
-    fogfunction.type = fType;
-    
-    switch(fType) {
-        case 'javascript':
-            var fCode = $('#codeText').val();
-            fogfunction.code = fCode;    
-            fogfunction.dockerImage = 'nodejs';           
-            break;
-        case 'python':
-            var fCode = $('#codeText').val();
-            fogfunction.code = fCode;    
-            fogfunction.dockerImage = 'pythonbase';           
-            break;
-        case 'docker':
-            var dockerImage = $('#codeImage option:selected').val();            
-            fogfunction.code = '';    
-            fogfunction.dockerImage = dockerImage;           
-            break;        
-    }     
-    
-    // check the defined inputs and outputs of this function
+    var operator = {};    
+        
     for(var i=0; i<scene.blocks.length; i++){
         var block = scene.blocks[i];
-        
-        console.log(block.name);
-        
-        if(block.type == "FogFunction") {
-            fogfunction.name = block.values['name'];
-            fogfunction.user = block.values['user'];
+                
+        if(block.type == "Operator") {
+            operator.name = block.values['name'];
+            operator.description = block.values['description'];
             
-            // construct its input streams
-            fogfunction.inputTriggers = findInputTriggers(scene, block.id);
-            
-            // construct its output streams
-            fogfunction.outputAnnotators = findOutputAnnotators(scene, block.id);   
+            // construct its controllable parameters
+            operator.parameters = findInputParameters(scene, block.id);
             
             break;         
         }
     }        
-    
-    return fogfunction;    
+
+    console.log(operator);    
+    return operator;    
 }
 
-function findInputTriggers(scene, blockId)
+
+function findInputParameters(scene, blockId)
 {
-    var selectors = [];
+    var parameters = [];
 
     for(var i=0; i<scene.edges.length; i++){
         var edge = scene.edges[i];
@@ -255,296 +222,18 @@ function findInputTriggers(scene, blockId)
                 var block = scene.blocks[j];
                 
                 if(block.id == edge.block1) {
-                    var selector = {};
-                    selector.name = "selector" + block.id
-                    selector.selectedAttributeList = block.values.selectedattributes;
-                    selector.groupedAttributeList = block.values.groupby;
-                    selector.conditionList = findConditions(scene, block.id);
+                    var parameter = {};
+                    parameter.name = block.values.name
+                    parameter.values = block.values.values ;
                     
-                    selectors.push(selector);
+                    parameters.push(parameter);
                 }
             }               
         }
     }
     
-    return selectors;
+    return parameters;
 }
-
-
-function findConditions(scene, blockId)
-{
-    var conditions = [];
-    
-    for(var i=0; i<scene.edges.length; i++){
-        var edge = scene.edges[i];    
-        
-        if(edge.block2 == blockId) {        
-            for(var j=0; j<scene.blocks.length; j++) {
-                var block = scene.blocks[j];
-                
-                if(block.id == edge.block1) {        
-                    var condition = {};                    
-                    condition.type = block.values.type;
-                    condition.value = block.values.value;                                    
-                    conditions.push(condition);
-                }
-            }
-        }
-    }
-            
-    return conditions
-}
-
-function findOutputAnnotators(scene, blockId)
-{
-    var annotators = [];
-    
-    for(var i=0; i<scene.edges.length; i++){
-        var edge = scene.edges[i];    
-        
-        if(edge.block1 == blockId) {                    
-            for(var j=0; j<scene.blocks.length; j++) {
-                var block = scene.blocks[j];
-                
-                if(block.id == edge.block2) {        
-                    var annotator = {};    
-                    
-                    annotator.entityType = block.values.entitytype;
-                    annotator.groupInherited = block.values.herited;                
-                    
-                    annotators.push(annotator);
-                }
-            }
-        }
-    }            
-    
-    return annotators;    
-}
-
-
-function submitFunction(fogfunction, designboard)
-{
-	console.log("==============================")
-    console.log(JSON.stringify(fogfunction));  
-	console.log(JSON.stringify(designboard));
-	console.log("============end===============")
-
-        
-    var functionCtxObj = {};
-    
-    functionCtxObj.entityId = {
-        id : 'FogFunction.' + fogfunction.name, 
-        type: 'FogFunction',
-        isPattern: false
-    };
-    
-    functionCtxObj.attributes = {};   
-    functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};
-    functionCtxObj.attributes.designboard = {type: 'object', value: designboard};    	
-    functionCtxObj.attributes.fogfunction = {type: 'object', value: fogfunction};    
-    
-    client.updateContext(functionCtxObj).then( function(data) {
-        console.log(data);  
-              
-        // update the list of submitted topologies
-        updateFogFunctionList();                       
-    }).catch( function(error) {
-        console.log('failed to submit the fog function');
-    });           
-}
-
-function showFunctionCode() 
-{
-    var queryReq = {}
-    queryReq.entities = [{type:'FunctionCode', isPattern: true}];
-    client.queryContext(queryReq).then( function(functionList) {
-        console.log(functionList);
-        displayFunctionList(functionList);
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query task');
-    });          
-}
-
-function updateFogFunctionList() 
-{
-    var queryReq = {}
-    queryReq.entities = [{type:'FunctionCode', isPattern: true}];
-    client.queryContext(queryReq).then( function(functionList) {
-        console.log(functionList);
-        displayFunctionList(functionList);
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query context');
-    });       
-}
-
-function displayFunctionList(functions) 
-{
-    $('#info').html('list of all submitted fog functions');
-
-    if(functions.length == 0) {
-        $('#content').html('');
-        return;
-    }          
-
-    var html = '<table class="table table-striped table-bordered table-condensed">';
-   
-    html += '<thead><tr>';
-    html += '<th>ID</th>';
-    html += '<th>FogFunction</th>';
-    html += '<th>Status</th>';    
-    html += '</tr></thead>';    
-
-    for(var i=0; i<functions.length; i++){
-        var functionitem = functions[i];
-        
-        html += '<tr>';		
-		html += '<td>' + functionitem.entityId.id + '<br><button id="editor-' + functionitem.entityId.id + '" type="button" class="btn btn-default">editor</button>';        
-		html += '<br><button id="delete-' + functionitem.entityId.id + '" type="button" class="btn btn-default">delete</button></td>';        
-		html += '<td>' + JSON.stringify(functionitem.attributes['fogfunction'].value) + '</td>'; 
-        
-        var status = functionitem.attributes['status'].value;        
-                     
-		html += '</tr>';			
-	}
-       
-    html += '</table>';            
-	
-	$('#content').html(html);        	
-}
-
-
-function switchFogFunctionStatus(fogFunc)
-{
-    var functionCtxObj = {};    
-    
-    // switch the status
-    functionCtxObj.entityId = fogFunc.entityId
-    
-    functionCtxObj.attributes = {};   
-    
-    if (fogFunc.attributes.status.value == "enabled") {
-        functionCtxObj.attributes.status = {type: 'string', value: 'disabled'};        
-    } else {
-        functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};        
-    }
-    
-    client.updateContext(functionCtxObj).then( function(data) {
-        console.log(data);                
-        // update the list of submitted topologies
-        updateFogFunctionList();                       
-    }).catch( function(error) {
-        console.log('failed to submit the topology');
-    });      
-}
-
-function deleteFunction(fogFunc)
-{
-    var entityid = {
-        id : fogFunc.entityId.id, 
-        type: 'FogFunction',
-        isPattern: false
-    };	    
-    
-    client.deleteContext(entityid).then( function(data) {
-        console.log(data);
-		updateFogFunctionList();		
-    }).catch( function(error) {
-        console.log('failed to delete a fog function');
-    });  	
-}
-
-function showFunction() 
-{
-    $('#info').html('list of all triggerred function tasks');
-            
-    var queryReq = {}
-    queryReq.entities = [{type:'Function', isPattern: true}];
-
-    client.queryContext(queryReq).then( function(functionList) {
-        console.log(functionList);
-        displayFunctionList(functionList);
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query task');
-    });        
-}
-
-
-function displayFunctionList(functions) 
-{
-    $('#info').html('list of all function tasks that have been triggerred');
-
-    if(functions.length == 0) {
-        $('#content').html('');
-        return;
-    }          
-
-    var html = '<table class="table table-striped table-bordered table-condensed">';
-   
-    html += '<thead><tr>';
-    html += '<th>ID</th>';
-    html += '<th>Type</th>';
-    html += '<th>Attributes</th>';	
-    html += '<th>DomainMetadata</th>';		
-    html += '</tr></thead>';    
-
-    for(var i=0; i<functions.length; i++){
-        var func = functions[i];
-        html += '<tr>';
-		html += '<td>' + func.entityId.id + '</td>';
-		html += '<td>' + func.entityId.type + '</td>'; 
-		html += '<td>' + JSON.stringify(func.attributes) + '</td>';        
-		html += '<td>' + JSON.stringify(func.metadata) + '</td>';
-		html += '</tr>';			
-	}
-       
-    html += '</table>';            
-	
-	$('#content').html(html);      
-}
-
-
-function openEditor(fogfunctionEntity)
-{
-    if(fogfunctionEntity.attributes.designboard){
-        CurrentScene = fogfunctionEntity.attributes.designboard.value;   	
-    }
-		
-	//selectMenuItem('Editor');
-	//window.location.hash = '#Editor';			
-	showEditor();
-       
-    var fogfunction = fogfunctionEntity.attributes.fogfunction.value;
-			    		
-	// check the function type and the provided function code
-	$('#codeType').val(fogfunction.type);
-	
-    switch(fogfunction.type) {
-        case 'javascript':		
-            var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-            $('#codeBoard').html(boardHTML);		
-       		$('#codeText').val(fogfunction.code);          
-       		break;
-   		case 'python':			
-            var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-            $('#codeBoard').html(boardHTML);		
-       		$('#codeText').val(fogfunction.code);          
-       		break;
-   		case 'docker':				
-            var boardHTML = '<select id="codeImage"></select>';
-            $('#codeBoard').html(boardHTML); 
-            for(var i=0; i<operatorList.length; i++){
-                var operatorName = operatorList[i];
-                $('#codeImage').append($("<option></option>").attr("value", operatorName).text(operatorName));                                                    
-            } 			               
-       		$('#codeImage').val(fogfunction.dockerImage);                     
-       		break;        
-	} 
-}
-
-
 
 function showDockerImage() 
 {
@@ -685,7 +374,7 @@ function dockerImageRegistration()
     html += '</div>';    
 
     html += '<div class="control-group"><label class="control-label" for="input01">Operator(*)</label>';
-    html += '<div class="controls"><input type="text" class="input-xlarge" id="OperatorName">';
+    html += '<div class="controls"><select id="OperatorList"></select>';
     html += '</div></div>';    
 
     html += '<div class="control-group"><label class="control-label" for="optionsCheckbox">Prefetched</label>';
@@ -702,6 +391,8 @@ function dockerImageRegistration()
     html += '</fieldset></div>';
 
 	$('#content').html(html);          
+    
+    queryOperatorList();
         
     // associate functions to clickable buttons
     $('#submitRegistration').click(registerDockerImage);  
@@ -729,7 +420,7 @@ function registerDockerImage()
     var osType = $('#osType option:selected').val();
     console.log(osType);    
     
-    var operatorName = $('#OperatorName').val();
+    var operatorName = $('#OperatorList option:selected').val();
     console.log(operatorName);        
     
     var prefetched = document.getElementById('Prefetched').checked;
