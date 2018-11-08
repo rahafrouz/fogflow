@@ -53,10 +53,6 @@ type ProfileInfo struct {
 	City       string  `json:"city"`
 }
 
-type Trigger struct {
-	Type string
-}
-
 type OptPreference struct {
 	Minimize []string
 	Maximize []string
@@ -73,14 +69,21 @@ type QoS struct {
 	Constraints []OptConstraint
 }
 
-type Intent struct {
+type ServiceIntent struct {
 	ID             string
-	Trigger        Trigger  `json:"trigger"`
-	QoS            QoS      `json:"qos"`
+	QoS            string   `json:"qos"`
 	GeoScope       string   `json:"geoscope"`
 	Priority       Priority `json:"priority"`
 	TopologyName   string   `json:"topology"`
 	TopologyObject *Topology
+}
+
+type TaskIntent struct {
+	QoS        string   `json:"qos"`
+	GeoScope   string   `json:"geoscope"`
+	Priority   Priority `json:"priority"`
+	TaskName   string   `json:"task"`
+	TaskObject *Task
 }
 
 type InputStreamConfig struct {
@@ -91,6 +94,17 @@ type InputStreamConfig struct {
 
 type OutputStreamConfig struct {
 	Topic string `json:"type"`
+}
+
+type Parameter struct {
+	Name   string   `json:"name"`
+	Values []string `json:"values"`
+}
+
+type Operator struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Parameters  []Parameter `json:"parameters"`
 }
 
 type Task struct {

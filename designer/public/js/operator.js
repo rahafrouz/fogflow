@@ -40,6 +40,17 @@ function selectMenuItem(name) {
 
 function showOperator()
 {
+    $('#info').html('list of all registered operators');
+    
+    var html = '<div style="margin-bottom: 10px;"><button id="registerOperator" type="button" class="btn btn-primary">register</button></div>';
+    html += '<div id="operatorList"></div>';
+
+	$('#content').html(html);   
+      
+    $( "#registerOperator" ).click(function() {
+        showOperatorEditor();
+    });  
+        
     var queryReq = {}
     queryReq.entities = [{type:'Operator', isPattern: true}];           
     
@@ -79,17 +90,6 @@ function queryOperatorList()
 
 function displayOperatorList(operators) 
 {
-    $('#info').html('list of all registered operators');
-    
-    var html = '<div style="margin-bottom: 10px;"><button id="registerOperator" type="button" class="btn btn-primary">register</button></div>';
-    html += '<div id="operatorList"></div>';
-
-	$('#content').html(html);   
-      
-    $( "#registerOperator" ).click(function() {
-        showOperatorEditor();
-    });     
-
     if(operators == null || operators.length == 0){
         $('#operatorList').html('');           
         return        

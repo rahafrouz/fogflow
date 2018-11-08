@@ -640,7 +640,7 @@ func (flow *FogFlow) generateOutputs(group *GroupInfo) []*ContextElement {
 	return outEntities
 }
 
-type FunctionMgr struct {
+type TaskMgr struct {
 	master *Master
 
 	//list of all fog functions
@@ -656,36 +656,42 @@ type FunctionMgr struct {
 	subID2FogFunc_lock sync.RWMutex
 }
 
-func NewFogFunctionMgr(myMaster *Master) *FunctionMgr {
-	return &FunctionMgr{master: myMaster}
+func NewTaskMgr(myMaster *Master) *TaskMgr {
+	return &TaskMgr{master: myMaster}
 }
 
-func (fMgr *FunctionMgr) Init() {
+func (fMgr *TaskMgr) Init() {
 	fMgr.fogFuncList = make(map[string]*FogFunction)
 	fMgr.functionFlows = make(map[string]*FogFlow)
 	fMgr.subID2FogFunc = make(map[string]string)
 }
 
 //
-// deal with the updates of fog functions
+// deal with received task intents
 //
-func (fMgr *FunctionMgr) handleFogFunctionUpdate(responses []ContextElementResponse, sid string) {
-	INFO.Println("handle any update of fog functions")
-	ctxObj := CtxElement2Object(&(responses[0].ContextElement))
+func (fMgr *TaskMgr) handleTaskIntentUpdate(intentCtxObj *ContextObject) {
+	INFO.Println("handle taskintent update")
+	INFO.Println(intentCtxObj)
 
-	INFO.Printf("%+v\r\n", ctxObj)
-
-	// handle the incoming new intent to trigger data processing tasks
-	if ctxObj.Attributes["status"].Value == "enabled" {
-		fogFunc := fMgr.getFogFunction(ctxObj.Entity.ID)
-		fMgr.enableFogFunction(fogFunc)
-	} else if ctxObj.Attributes["status"].Value == "disabled" {
-		fogFunc := fMgr.getFogFunction(ctxObj.Entity.ID)
-		fMgr.disableFogFunction(fogFunc)
+	taskIntent := TaskIntent{}
+	jsonText, _ := json.Marshal(intentCtxObj.Attributes["taskintent"].Value.(map[string]interface{}))
+	err := json.Unmarshal(jsonText, &taskIntent)
+	if err == nil {
+		INFO.Println(taskIntent)
+	} else {
+		INFO.Println(err)
 	}
+
+	fMgr.handleTaskIntent(&taskIntent)
 }
 
-func (fMgr *FunctionMgr) getFogFunction(entityID string) *FogFunction {
+func (fMgr *TaskMgr) handleTaskIntent(taskIntent *TaskIntent) {
+
+}
+
+/*
+
+func (fMgr *TaskMgr) getFogFunction(entityID string) *FogFunction {
 	//check if it is already exist in the topology list
 	fMgr.fogFuncList_lock.RLock()
 	if fogfunc, ok := fMgr.fogFuncList[entityID]; ok {
@@ -716,7 +722,7 @@ func (fMgr *FunctionMgr) getFogFunction(entityID string) *FogFunction {
 	}
 }
 
-func (fMgr *FunctionMgr) enableFogFunction(f *FogFunction) {
+func (fMgr *TaskMgr) enableFogFunction(f *FogFunction) {
 	INFO.Printf("enable fog function %s\r\n", f.Name)
 	INFO.Printf("function code: %s\r\n", f.Code)
 
@@ -759,7 +765,7 @@ func (fMgr *FunctionMgr) enableFogFunction(f *FogFunction) {
 	fMgr.functionFlows_lock.Unlock()
 }
 
-func (fMgr *FunctionMgr) disableFogFunction(f *FogFunction) {
+func (fMgr *TaskMgr) disableFogFunction(f *FogFunction) {
 	INFO.Printf("disable fog function %s\r\n", f.Name)
 
 	// remove this fog function from the function map
@@ -768,7 +774,7 @@ func (fMgr *FunctionMgr) disableFogFunction(f *FogFunction) {
 	fMgr.functionFlows_lock.Unlock()
 }
 
-func (fMgr *FunctionMgr) selector2Subscription(inputSelector *Selector) string {
+func (fMgr *TaskMgr) selector2Subscription(inputSelector *Selector) string {
 	availabilitySubscription := SubscribeContextAvailabilityRequest{}
 
 	// define the selected attributes
@@ -834,7 +840,9 @@ func (fMgr *FunctionMgr) selector2Subscription(inputSelector *Selector) string {
 	return subscriptionId
 }
 
-func (fMgr *FunctionMgr) HandleContextAvailabilityUpdate(subID string, entityAction string, entityRegistration *EntityRegistration) {
+*/
+
+func (fMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction string, entityRegistration *EntityRegistration) {
 	INFO.Println("handle the change of stream availability")
 	INFO.Println(subID, entityAction, entityRegistration.ID)
 

@@ -10,7 +10,7 @@ import (
 )
 
 type ProcessingPlane struct {
-	Intent *Intent // orchestration intent issued by external applications
+	Intent *ServiceIntent // orchestration intent issued by external applications
 
 	ExecutionPlan  []*TaskInstance          // represent the derived execution plan
 	DeploymentPlan []*ScheduledTaskInstance // represent the derived deployment plan
@@ -23,7 +23,7 @@ type TopologyMgr struct {
 	topologyList      map[string]*Topology
 	topologyList_lock sync.RWMutex
 
-	//for topology-based processing flows
+	// mapping from an intent to its processing plane
 	processList map[string]*ProcessingPlane
 }
 
@@ -53,18 +53,34 @@ func (tMgr *TopologyMgr) handleTopologyUpdate(topologyCtxObj *ContextObject) {
 	}
 }
 
-func (tMgr *TopologyMgr) handleIntentUpdate(intentObj *ContextObject) {
+func (tMgr *TopologyMgr) handleServiceIntentUpdate(intentCtxObj *ContextObject) {
 	INFO.Println("handle intent update")
-	DEBUG.Println(intentObj)
+	INFO.Println(intentCtxObj)
 
-	/*
-		if processingPlane, exist := tMgr.processList[intent.ID]; exist {
-			INFO.Printf("update intent: %+v\r\n", intent)
-			tMgr.updateExistIntent(processingPlane, intent)
-		} else {
-			INFO.Printf("new intent: %+v\r\n", intent)
-			tMgr.createNewIntent(intent)
-		} */
+	status := intentCtxObj.Attributes["status"].Value
+
+	sIntent := ServiceIntent{}
+	jsonText, _ := json.Marshal(intentCtxObj.Attributes["serviceintent"].Value.(map[string]interface{}))
+	err := json.Unmarshal(jsonText, &sIntent)
+	if err == nil {
+		INFO.Println(sIntent)
+	} else {
+		INFO.Println(err)
+	}
+
+	if status == "remove" {
+		tMgr.removeServiceIntent()
+	} else {
+		tMgr.handleServiceIntent(&sIntent)
+	}
+}
+
+func (tMgr *TopologyMgr) handleServiceIntent(intent *ServiceIntent) {
+
+}
+
+func (tMgr *TopologyMgr) removeServiceIntent() {
+
 }
 
 /*

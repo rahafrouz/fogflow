@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -31,15 +32,19 @@ type Master struct {
 	workers         map[string]*WorkerProfile
 	workerList_lock sync.RWMutex
 
-	//list of all dockerized operators
-	operatorList      map[string][]DockerImage
+	//list of all operators
+	operatorList      map[string]Operator
 	operatorList_lock sync.RWMutex
 
-	//to manage the orchestration of fog functions
-	functionMgr *FunctionMgr
+	//list of all docker images
+	dockerImageList      map[string][]DockerImage
+	dockerImageList_lock sync.RWMutex
 
 	//to manage the orchestration of service topology
 	topologyMgr *TopologyMgr
+
+	//to manage the orchestration of tasks
+	taskMgr *TaskMgr
 
 	//type of subscribed entities
 	subID2Type map[string]string
@@ -53,7 +58,8 @@ func (master *Master) Start(configuration *Config) {
 
 	master.workers = make(map[string]*WorkerProfile)
 
-	master.operatorList = make(map[string][]DockerImage)
+	master.operatorList = make(map[string]Operator)
+	master.dockerImageList = make(map[string][]DockerImage)
 
 	master.subID2Type = make(map[string]string)
 
@@ -81,8 +87,8 @@ func (master *Master) Start(configuration *Config) {
 	}
 
 	// initialize the manager for both fog function and service topology
-	master.functionMgr = NewFogFunctionMgr(master)
-	master.functionMgr.Init()
+	master.taskMgr = NewTaskMgr(master)
+	master.taskMgr.Init()
 
 	master.topologyMgr = NewTopologyMgr(master)
 	master.topologyMgr.Init()
@@ -179,9 +185,11 @@ func (master *Master) unregisterMyself() {
 }
 
 func (master *Master) triggerInitialSubscriptions() {
+	master.subscribeContextEntity("Operator")
 	master.subscribeContextEntity("DockerImage")
 	master.subscribeContextEntity("Topology")
-	master.subscribeContextEntity("Intent")
+	master.subscribeContextEntity("ServiceIntent")
+	master.subscribeContextEntity("TaskIntent")
 }
 
 func (master *Master) subscribeContextEntity(entityType string) {
@@ -213,7 +221,11 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 	DEBUG.Println(contextObj)
 
 	switch stype {
-	// docker images of each operator
+	// registry of an operator
+	case "Operator":
+		master.handleOperatorRegistration(contextObj)
+
+	// registry of a docker image
 	case "DockerImage":
 		master.handleDockerImageRegistration(contextObj)
 
@@ -221,9 +233,32 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 	case "Topology":
 		master.topologyMgr.handleTopologyUpdate(contextObj)
 
-	// service orchestration is triggerred by an user-defined intent
-	case "Intent":
-		master.topologyMgr.handleIntentUpdate(contextObj)
+	// service orchestration
+	case "ServiceIntent":
+		master.topologyMgr.handleServiceIntentUpdate(contextObj)
+
+	// task orchestration
+	case "TaskIntent":
+		master.taskMgr.handleTaskIntentUpdate(contextObj)
+	}
+
+}
+
+//
+// to handle the registry of operator
+//
+func (master *Master) handleOperatorRegistration(operatorCtxObj *ContextObject) {
+	INFO.Println(operatorCtxObj)
+
+	var operator = Operator{}
+	jsonText, _ := json.Marshal(operatorCtxObj.Attributes["operator"].Value.(map[string]interface{}))
+	err := json.Unmarshal(jsonText, &operator)
+	if err != nil {
+		ERROR.Println("failed to read the given operator")
+	} else {
+		master.operatorList_lock.Lock()
+		master.operatorList[operator.Name] = operator
+		master.operatorList_lock.Unlock()
 	}
 }
 
@@ -241,9 +276,9 @@ func (master *Master) handleDockerImageRegistration(dockerImageCtxObj *ContextOb
 	dockerImage.TargetedOSType = dockerImageCtxObj.Attributes["osType"].Value.(string)
 	dockerImage.Prefetched = dockerImageCtxObj.Attributes["prefetched"].Value.(bool)
 
-	master.operatorList_lock.Lock()
-	master.operatorList[dockerImage.OperatorName] = append(master.operatorList[dockerImage.OperatorName], dockerImage)
-	master.operatorList_lock.Unlock()
+	master.dockerImageList_lock.Lock()
+	master.dockerImageList[dockerImage.OperatorName] = append(master.dockerImageList[dockerImage.OperatorName], dockerImage)
+	master.dockerImageList_lock.Unlock()
 
 	if dockerImage.Prefetched == true {
 		// inform all workers to prefetch this docker image in advance
@@ -302,7 +337,7 @@ func (master *Master) onReceiveContextAvailability(notifyCtxAvailReq *NotifyCont
 		for _, entity := range registration.EntityIdList {
 			// convert context registration to entity registration
 			entityRegistration := master.contextRegistration2EntityRegistration(&entity, &registration)
-			master.functionMgr.HandleContextAvailabilityUpdate(subID, action, entityRegistration)
+			master.taskMgr.HandleContextAvailabilityUpdate(subID, action, entityRegistration)
 		}
 	}
 }
@@ -483,8 +518,8 @@ func (master *Master) DetermineDockerImage(operatorName string, wID string) stri
 	selectedDockerImageName := ""
 
 	wProfile := master.workers[wID]
-	master.operatorList_lock.RLock()
-	for _, image := range master.operatorList[operatorName] {
+	master.dockerImageList_lock.RLock()
+	for _, image := range master.dockerImageList[operatorName] {
 		DEBUG.Println(image.TargetedOSType, image.TargetedHWType)
 		DEBUG.Println(wProfile.OSType, wProfile.HWType)
 
@@ -504,7 +539,7 @@ func (master *Master) DetermineDockerImage(operatorName string, wID string) stri
 		}
 	}
 
-	master.operatorList_lock.RUnlock()
+	master.dockerImageList_lock.RUnlock()
 
 	return selectedDockerImageName
 }
@@ -547,4 +582,25 @@ func (master *Master) SelectWorker(locations []Point) string {
 	}
 
 	return closestWorkerID
+}
+
+func hsin(theta float64) float64 {
+	return math.Pow(math.Sin(theta/2), 2)
+}
+
+func Distance(p1 Point, p2 Point) uint64 {
+	// convert to radians
+	// must cast radius as float to multiply later
+	var la1, lo1, la2, lo2, r float64
+	la1 = p1.Latitude * math.Pi / 180
+	lo1 = p1.Longitude * math.Pi / 180
+	la2 = p2.Latitude * math.Pi / 180
+	lo2 = p2.Longitude * math.Pi / 180
+
+	r = 6378100 // Earth radius in METERS
+
+	// calculate
+	h := hsin(la2-la1) + math.Cos(la1)*math.Cos(la2)*hsin(lo2-lo1)
+
+	return uint64(2 * r * math.Asin(math.Sqrt(h)))
 }

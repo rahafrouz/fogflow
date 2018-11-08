@@ -4,6 +4,12 @@ $(function(){
 
 // initialize the menu bar
 var handlers = {}
+
+var geoscope = {
+    type: 'string',
+    value: 'all'
+};
+
 var CurrentScene = null;
 
 // location of new device
@@ -37,7 +43,7 @@ var myToplogyExamples = [
 }
 ];
 
-addMenuItem('Editor', showEditor);         
+//addMenuItem('Editor', showEditor);         
 addMenuItem('Topology', showTopologies);         
 addMenuItem('Intent', showIntents);         
 
@@ -92,7 +98,7 @@ function queryTopology()
 }
 
 
-function showEditor() 
+function showTopologyEditor() 
 {
     $('#info').html('to design a service topology');
 
@@ -108,7 +114,7 @@ function showEditor()
     html += '<div class="controls"><textarea class="form-control" rows="3" id="serviceDescription"></textarea>';
     html += '</div></div>';      
            
-    html += '<div class="control-group"><label class="control-label">topology</label><div class="controls">';
+    html += '<div class="control-group"><label class="control-label">task</label><div class="controls">';
     html += '<span>  </span><button id="cleanBoard" type="button" class="btn btn-default">Clean Board</button>';                            
     html += '<span>  </span><button id="saveBoard" type="button" class="btn btn-default">Save Board</button>';  
     html += '<span>  </span><button id="generateTopology" type="button" class="btn btn-primary">Generate Topology</button>';                                      
@@ -146,14 +152,11 @@ function showEditor()
     });    
 }
 
-function openEditor(topologyEntity)
-{
-	//selectMenuItem('Editor');
-	//window.location.hash = '#Editor';
-		
+function openTopologyEditor(topologyEntity)
+{		
     if(topologyEntity.attributes.designboard){
         CurrentScene = topologyEntity.attributes.designboard.value;          
-        showEditor(); 
+        showTopologyEditor(); 
         
         var topology = topologyEntity.attributes.template.value;
         
@@ -357,11 +360,16 @@ function submitTopology(topology, designboard)
 
 function showTopologies() 
 {    
-    $('#info').html('list of submitted topologies');
-
-    var html = '<div id="itemList"></div>';         
+    $('#info').html('list of all registered service topologies');
     
-	$('#content').html(html);       
+    var html = '<div style="margin-bottom: 10px;"><button id="registerTopology" type="button" class="btn btn-primary">register</button></div>';
+    html += '<div id="topologyList"></div>';
+
+	$('#content').html(html);   
+      
+    $( "#registerTopology" ).click(function() {
+        showTopologyEditor();
+    });    
                   
     // update the list of submitted topologies
     updateTopologyList();    
@@ -415,7 +423,7 @@ function displayTopologyList(topologies)
        
     html += '</table>';  
 
-	$('#itemList').html(html);  
+	$('#topologyList').html(html);  
     
     // associate a click handler to the editor button
     for(var i=0; i<topologies.length; i++){
@@ -425,7 +433,7 @@ function displayTopologyList(topologies)
         var editorButton = document.getElementById('editor-' + topology.entityId.id);
         editorButton.onclick = function(mytopology) {
             return function(){
-                openEditor(mytopology);
+                openTopologyEditor(mytopology);
             };
         }(topology);
 		
@@ -440,51 +448,320 @@ function displayTopologyList(topologies)
 
 function showIntents() 
 {        
-    $('#info').html('list of scoped requirements to trigger processing tasks');
-
-    var queryReq = {}
-    queryReq.entities = [{type:'Requirement', isPattern: true}];    
+    $('#info').html('list of active intentss');
     
-    client.queryContext(queryReq).then( function(requirements) {
-        console.log(requirements);
-        displayRequirementList(requirements);
+    var html = '<div style="margin-bottom: 10px;"><button id="addIntent" type="button" class="btn btn-primary">add</button></div>';
+    html += '<div id="intentList"></div>';
+
+	$('#content').html(html);   
+      
+    $( "#addIntent" ).click(function() {
+        addIntent();
+    });    
+                  
+    var queryReq = {}
+    queryReq.entities = [{type:'ServiceIntent', isPattern: true}];    
+    
+    client.queryContext(queryReq).then( function(intents) {
+        console.log(intents);
+        displayIntentList(intents);
     }).catch(function(error) {
         console.log(error);
-        console.log('failed to query context');
+        console.log('failed to query intent entities');
     });     
 }
 
-function displayRequirementList(requirements) 
+
+function displayIntentList(intents) 
 {
-    if(requirements == null || requirements.length ==0){
-        $('#content').html('');                   
-        return
+    if(intents == null || intents.length == 0){
+        $('#intentList').html('');           
+        return        
     }
     
     var html = '<table class="table table-striped table-bordered table-condensed">';
    
     html += '<thead><tr>';
-    html += '<th>ID</th>';
-    html += '<th>Type</th>';
-    html += '<th>Attributes</th>';
-    html += '<th>DomainMetadata</th>';    
+    html += '<th>Topology</th>';    
+    html += '<th>Priority</th>';    
+    html += '<th>QoS</th>';
+    html += '<th>GeoScope</th>';
     html += '</tr></thead>';    
-       
-    for(var i=0; i<requirements.length; i++){
-        var requirement = requirements[i];
-		
+           
+    for(var i=0; i<intents.length; i++){
+        var entity = intents[i];
+        
+        var intent = entity.attributes.intent.value;		
+        console.log(intent);
+        
         html += '<tr>'; 
-		html += '<td>' + requirement.entityId.id + '</td>';
-		html += '<td>' + requirement.entityId.type + '</td>'; 
-		html += '<td>' + JSON.stringify(requirement.attributes) + '</td>';        
-		html += '<td>' + JSON.stringify(requirement.metadata) + '</td>';
-		html += '</tr>';	
-	}
+		html += '<td>' + intent.topology + '</td>';                        
+		html += '<td>' + JSON.stringify(intent.priority)+ '</td>';                
+		html += '<td>' + intent.qos + '</td>';        
+		html += '<td>' + intent.geoscope + '</td>';                
+                              
+		html += '</tr>';	                        
+	}    
        
-    html += '</table>'; 
-
-	$('#content').html(html);   
+    html += '</table>';  
+    
+	$('#intentList').html(html);      
 }
+
+
+function addIntent()
+{
+    $('#info').html('to specify an intent object in order to run your service');         
+    
+    var html = '<div id="intentRegistration" class="form-horizontal"><fieldset>';   
+
+    html += '<div class="control-group"><label class="control-label" for="input01">Topology</label>';
+    html += '<div class="controls"><select id="topologyItems"></select></div>'
+    html += '</div>';       
+     
+    html += '<div class="control-group"><label class="control-label">Priority</label><div class="controls">';
+    html += '<select id="priorityLevel"><option>low</option><option>middle</option><option>high</option></select>';    
+    html += '</div></div>';    
+    
+    html += '<div class="control-group"><label class="control-label">Resource usage</label><div class="controls">';
+    html += '<select id="resouceUsage"><option>inclusive</option><option>exclusive</option></select>';
+    html += '</div></div>';     
+
+
+    html += '<div class="control-group"><label class="control-label">Objective</label><div class="controls">';
+    html += '<select id="QoS"><option>Max Throughput</option><option>Mini Latency</option><option>Max Bandwidth Saving</option></select>';    
+    html += '</div></div>';  
+
+    html += '<div class="control-group"><label class="control-label">Scope</label><div class="controls">';
+    html += '<select id="geoscope"><option value="local">local</option><option value="global">global</option><option value="custom">custom</option></select>';    
+    html += '</div></div>';  
+
+    html += '<div class="control-group" ><label class="control-label" for="input01">Polygon</label>';
+    html += '<div class="controls" id="mapDiv"><div id="map"  style="width: 500px; height: 400px"></div></div>'
+    html += '</div>';    
+  
+    
+    html += '<div class="control-group"><label class="control-label" for="input01"></label>';
+    html += '<div class="controls"><button id="submitIntent" type="button" class="btn btn-primary">Send</button>';
+    html += '</div></div>';   
+       
+    html += '</fieldset></div>';
+    
+    $('#content').html(html);        
+   
+    // show the map to set locations
+    showMap();   
+    
+    // add all service topologies into the selection list
+    listAllTopologies();
+    
+    // associate functions to clickable buttons
+    $('#submitIntent').click(submitIntent);  
+    
+    $('#geoscope').change( function() {
+        var scope = $(this).val();
+        if (scope == "custom") {
+
+        } else {
+            
+        }
+    });
+}
+
+
+function listAllTopologies() 
+{
+    var queryReq = {}
+    queryReq.entities = [{type:'Topology', isPattern: true}];
+    client.queryContext(queryReq).then( function(topologyList) {
+        var topologySelect = document.getElementById('topologyItems');
+        for(var i=0; i<topologyList.length; i++) {
+            var topology = topologyList[i].attributes.template.value;
+            topologySelect.options[topologySelect.options.length] = new Option(topology.name, topology.name);
+        }
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query topology');
+    });          
+}
+
+function uuid() {
+    var uuid = "", i, random;
+    for (i = 0; i < 32; i++) {
+        random = Math.random() * 16 | 0;
+        if (i == 8 || i == 12 || i == 16 || i == 20) {
+            uuid += "-"
+        }
+        uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
+    }
+    
+    return uuid;
+}    
+  
+
+function submitIntent()
+{       
+    var intent = {};    
+    
+    var topology = $('#topologyItems option:selected').val();    
+    intent.topology = topology;
+        
+    var temp1 = $('#PriorityLevel option:selected').val();
+    var priorityLevel = 0;
+    switch(temp1) {
+        case 'low':
+            priorityLevel = 0;
+            break;
+        case 'middle': 
+            priorityLevel = 50;
+            break;
+        case 'high':            
+            priorityLevel = 100;
+            break;        
+    }    
+
+    var temp2 = $('#ResouceUsage option:selected').val();
+    var exclusiveResourceUsage = false;    
+    if(temp2 == 'exclusive'){
+        exclusiveResourceUsage = true; 
+    }    
+    
+    intent.priority = {
+        'exclusive': exclusiveResourceUsage,
+        'level': priorityLevel
+    };
+    
+    var qos = $('#QoS option:selected').val();    
+    intent.qos = qos;    
+        
+    var geoscope = $('#geoscope option:selected').val();    
+    intent.geoscope = geoscope;   
+    
+    var intentCtxObj = {};
+    
+    var uid = uuid();
+    
+    intentCtxObj.entityId = { 
+        id: 'ServiceIntent.' + uid,           
+        type: 'ServiceIntent',
+        isPattern: false
+    };
+    
+    intentCtxObj.attributes = {};   
+    intentCtxObj.attributes.status = {type: 'string', value: 'enabled'};
+    intentCtxObj.attributes.intent = {type: 'object', value: intent};  
+        
+    client.updateContext(intentCtxObj).then( function(data) {
+        console.log(data);  
+        // update the list of submitted intents
+        showIntents();               
+    }).catch( function(error) {
+        console.log('failed to submit the defined intent');
+    });    
+}
+
+
+function showMap() 
+{
+    var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        osm = L.tileLayer(osmUrl, {maxZoom: 7, zoom: 7}),
+        map = new L.Map('map', {zoomControl:false, layers: [osm], center: new L.LatLng(35.692221, 138.709059), zoom: 7});
+
+	//disable zoom in/out
+	map.dragging.disable();
+	map.touchZoom.disable();
+	map.doubleClickZoom.disable();
+	map.scrollWheelZoom.disable();
+	map.boxZoom.disable();
+	map.keyboard.disable();
+
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    var drawControl = new L.Control.Draw({
+        draw: {
+            position: 'topleft',
+            polyline: false,            
+			polygon: {
+                showArea: false
+            },
+            rectangle: {
+                shapeOptions: {
+                    color: '#E3225C',
+                    weight: 2,
+                    clickable: false
+                }
+            },
+            circle: {
+                shapeOptions: {
+                    color: '#E3225C',
+                    weight: 2,
+                    clickable: false
+                }
+            },          
+            marker: false
+        },
+        edit: {
+            featureGroup: drawnItems
+        }
+    });
+    map.addControl(drawControl);
+
+    map.on('draw:created', function (e) {
+		var type = e.layerType;
+		var layer = e.layer;
+
+		if (type === 'rectangle') {
+            var geometry = layer.toGeoJSON()['geometry'];
+            console.log(geometry);
+            
+            geoscope.type = 'polygon';
+            geoscope.value = {
+                vertices: []
+            };
+            
+            points = geometry.coordinates[0];
+            for(i in points){
+                geoscope.value.vertices.push({longitude: points[i][0], latitude: points[i][1]});
+            }
+            
+			console.log(geoscope);            
+		} 
+		if (type === 'circle') {
+            var geometry = layer.toGeoJSON()['geometry'];
+            console.log(geometry);
+            var radius = layer.getRadius();
+            
+            geoscope.type = 'circle';
+            geoscope.value = {
+                centerLatitude: geometry.coordinates[1],
+                centerLongitude: geometry.coordinates[0],
+                radius: radius
+            }
+            
+			console.log(geoscope);            
+		} 
+		if (type === 'polygon') {
+            var geometry = layer.toGeoJSON()['geometry'];
+            console.log(geometry);
+            
+            geoscope.type = 'polygon';
+            geoscope.value = {
+                vertices: []
+            };
+            
+            points = geometry.coordinates[0];
+            for(i in points){
+                geoscope.value.vertices.push({longitude: points[i][0], latitude: points[i][1]});
+            }
+            
+			console.log(geoscope);            
+		}
+        
+        drawnItems.addLayer(layer);
+    });  
+}
+
 
 });
 
