@@ -87,13 +87,14 @@ type TaskIntent struct {
 }
 
 type InputStreamConfig struct {
-	Topic     string `json:"type"`
-	Shuffling string `json:"shuffling"`
-	Scoped    bool   `json:"scoped"`
+	EntityType         string   `json:"selected_type"`
+	SelectedAttributes []string `json:"selected_attributes"`
+	GroupBy            string   `json:"groupby"`
+	Scoped             bool     `json:"scoped"`
 }
 
 type OutputStreamConfig struct {
-	Topic string `json:"type"`
+	EntityType string `json:"entity_type"`
 }
 
 type Parameter struct {
@@ -110,9 +111,21 @@ type Operator struct {
 type Task struct {
 	Name          string               `json:"name"`
 	Operator      string               `json:"operator"`
-	Granularity   string               `json:"groupBy"`
 	InputStreams  []InputStreamConfig  `json:"input_streams"`
 	OutputStreams []OutputStreamConfig `json:"output_streams"`
+}
+
+func (task *Task) isSeparable() bool {
+	var flag = true
+
+	for _, inputStream := range task.InputStreams {
+		if inputStream.GroupBy != "EntityID" {
+			flag = false
+			break
+		}
+	}
+
+	return flag
 }
 
 type TaskOrchestration struct {

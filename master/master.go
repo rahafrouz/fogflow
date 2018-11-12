@@ -241,7 +241,6 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 	case "TaskIntent":
 		master.taskMgr.handleTaskIntentUpdate(contextObj)
 	}
-
 }
 
 //

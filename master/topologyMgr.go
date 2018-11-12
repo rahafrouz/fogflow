@@ -40,16 +40,16 @@ func (tMgr *TopologyMgr) Init() {
 // update the execution plan and deployment plan according to the system changes
 //
 func (tMgr *TopologyMgr) handleTopologyUpdate(topologyCtxObj *ContextObject) {
-	topologyID := topologyCtxObj.Entity.ID
-
 	topology := Topology{}
 	jsonText, _ := json.Marshal(topologyCtxObj.Attributes["template"].Value.(map[string]interface{}))
 	err := json.Unmarshal(jsonText, &topology)
 	if err == nil {
 		INFO.Println(topology)
 		tMgr.topologyList_lock.Lock()
-		tMgr.topologyList[topologyID] = &topology
+		tMgr.topologyList[topology.Name] = &topology
 		tMgr.topologyList_lock.Unlock()
+
+		INFO.Println(topology)
 	}
 }
 
@@ -60,13 +60,16 @@ func (tMgr *TopologyMgr) handleServiceIntentUpdate(intentCtxObj *ContextObject) 
 	status := intentCtxObj.Attributes["status"].Value
 
 	sIntent := ServiceIntent{}
-	jsonText, _ := json.Marshal(intentCtxObj.Attributes["serviceintent"].Value.(map[string]interface{}))
+	jsonText, _ := json.Marshal(intentCtxObj.Attributes["intent"].Value.(map[string]interface{}))
 	err := json.Unmarshal(jsonText, &sIntent)
 	if err == nil {
 		INFO.Println(sIntent)
 	} else {
 		INFO.Println(err)
 	}
+
+	// attached the entityID as the ID of this service intent
+	sIntent.ID = intentCtxObj.Entity.ID
 
 	if status == "remove" {
 		tMgr.removeServiceIntent()
@@ -75,7 +78,48 @@ func (tMgr *TopologyMgr) handleServiceIntentUpdate(intentCtxObj *ContextObject) 
 	}
 }
 
+//
+// to break down the service intent from the service level into the task level
+//
 func (tMgr *TopologyMgr) handleServiceIntent(intent *ServiceIntent) {
+	INFO.Println("receive a service intent")
+	INFO.Println(intent)
+
+	// find the required topology object
+	tMgr.topologyList_lock.RLock()
+	intent.TopologyObject = tMgr.topologyList[intent.TopologyName]
+	tMgr.topologyList_lock.RUnlock()
+
+	for _, task := range intent.TopologyObject.Tasks {
+		INFO.Println(task)
+
+		if task.isSeparable() == true {
+			tMgr.intentPartition(task)
+		} else {
+			tMgr.handleTask(task)
+		}
+	}
+}
+
+//
+// the algorithm of intent partition
+//
+func (tMgr *TopologyMgr) intentPartition(task *Task) {
+	INFO.Println("receive a service intent")
+	INFO.Println(intent)
+
+	taskIntent := TaskIntent{}
+
+}
+
+//
+// to handle the task directly
+//
+func (tMgr *TopologyMgr) handleTask(task *Task) {
+	INFO.Println("receive a task intent")
+	INFO.Println(task)
+
+	taskIntent := TaskIntent{}
 
 }
 

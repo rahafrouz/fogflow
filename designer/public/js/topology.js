@@ -34,24 +34,18 @@ var myToplogyExamples = [
 {
     topology: {"name":"anomaly-detection","description":"detect anomaly events from time series data points","priority":{"exclusive":false,"level":50},"trigger":"on-demand","tasks":[{"name":"AnomalyDetector","operator":"anomaly","groupBy":"shop","input_streams":[{"type":"PowerPanel","scoped":true,"shuffling":"unicast"},{"type":"Rule","scoped":false,"shuffling":"broadcast"}],"output_streams":[{"type":"Anomaly"}]},{"name":"Counter","operator":"counter","groupBy":"all","input_streams":[{"type":"Anomaly","scoped":true,"shuffling":"unicast"}],"output_streams":[{"type":"Stat"}]}]},
     designboard: {"edges":[{"id":1,"block1":1,"connector1":["outputs","output",0],"block2":2,"connector2":["inputs","input",0]},{"id":2,"block1":4,"connector1":["stream","output"],"block2":1,"connector2":["inputs","input",1]},{"id":3,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["inputs","input",0]}],"blocks":[{"id":1,"x":-21,"y":-95,"type":"Task","module":null,"values":{"name":"AnomalyDetector","operator":"anomaly","groupby":"shop","inputs":["unicast","broadcast"],"outputs":["Anomaly"]}},{"id":2,"x":194,"y":-97,"type":"Task","module":null,"values":{"name":"Counter","operator":"counter","groupby":"all","inputs":["unicast"],"outputs":["Stat"]}},{"id":3,"x":-280,"y":-138,"type":"InputStream","module":null,"values":{"entitytype":"PowerPanel","scoped":true}},{"id":4,"x":-279,"y":24,"type":"InputStream","module":null,"values":{"entitytype":"Rule","scoped":false}}]}
-}, {
-    topology: {"name":"crowd-detection","description":"detect the number of faces from IP cameras","priority":{"exclusive":false,"level":50},"trigger":"on-demand","tasks":[{"name":"facesum","operator":"sum","groupBy":"all","input_streams":[{"type":"FaceNum","scoped":true,"shuffling":"unicast"}],"output_streams":[{"type":"FaceSum"}]},{"name":"facenum","operator":"facecounter","groupBy":"cameraID","input_streams":[{"type":"Camera","scoped":true,"shuffling":"unicast"}],"output_streams":[{"type":"FaceNum"}]}]},
-    designboard: {"edges":[{"id":1,"block1":2,"connector1":["outputs","output",0],"block2":1,"connector2":["inputs","input",0]},{"id":2,"block1":3,"connector1":["stream","output"],"block2":2,"connector2":["inputs","input",0]}],"blocks":[{"id":1,"x":241,"y":-113,"type":"Task","module":null,"values":{"name":"facesum","operator":"sum","groupby":"all","inputs":["unicast"],"outputs":["FaceSum"]}},{"id":2,"x":-70,"y":-164,"type":"Task","module":null,"values":{"name":"facenum","operator":"facecounter","groupby":"cameraID","inputs":["unicast"],"outputs":["FaceNum"]}},{"id":3,"x":-367,"y":-100,"type":"InputStream","module":null,"values":{"entitytype":"Camera","scoped":true}}]}
-}, {
-    topology: {"name":"child-finder","description":"search for a lost child based on face recognition","priority":{"exclusive":true,"level":100},"trigger":"on-demand","tasks":[{"name":"childfinder","operator":"facefinder","groupBy":"cameraID","input_streams":[{"type":"Camera","scoped":true,"shuffling":"unicast"},{"type":"ChildLost","scoped":false,"shuffling":"broadcast"}],"output_streams":[{"type":"ChildFound"}]}]},
-    designboard: {"edges":[{"id":1,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["inputs","input",1]},{"id":2,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["inputs","input",0]}],"blocks":[{"id":1,"x":-48,"y":-113,"type":"Task","module":null,"values":{"name":"childfinder","operator":"facefinder","groupby":"cameraID","inputs":["unicast","broadcast"],"outputs":["ChildFound"]}},{"id":2,"x":-344,"y":-159,"type":"InputStream","module":null,"values":{"entitytype":"Camera","scoped":true}},{"id":3,"x":-336,"y":3,"type":"InputStream","module":null,"values":{"entitytype":"ChildLost","scoped":false}}]}
 }
 ];
 
-//addMenuItem('Editor', showEditor);         
-addMenuItem('Topology', showTopologies);         
+addMenuItem('Template', showTemplates);         
 addMenuItem('Intent', showIntents);         
 
-showTopologies();
+showTemplates();
 
 queryOperatorList();
 
-queryTopology();
+//queryTopology();
+
 
 $(window).on('hashchange', function() {
     var hash = window.location.hash;
@@ -107,7 +101,7 @@ function showTopologyEditor()
     html += '<div id="topologySpecification" class="form-horizontal"><fieldset>';            
     
     html += '<div class="control-group"><label class="control-label">name</label>';
-    html += '<div class="controls"><input type="text" class="input-large" id="topologyName">';
+    html += '<div class="controls"><input type="text" class="input-large" id="serviceName">';
     html += '</div></div>';
     
     html += '<div class="control-group"><label class="control-label">description</label>';
@@ -221,39 +215,12 @@ function queryOperatorList()
 function boardScene2Topology(scene)
 {
     // construct a topology from the provided information
-    var topologyName = $('#topologyName').val();
+    var topologyName = $('#serviceName').val();
     var serviceDescription = $('#serviceDescription').val();
-
-    var temp1 = $('#priorityLevel option:selected').val();
-    var priorityLevel = 0;
-    switch(temp1) {
-        case 'low':
-            priorityLevel = 0;
-            break;
-        case 'middle': 
-            priorityLevel = 50;
-            break;
-        case 'high':            
-            priorityLevel = 100;
-            break;        
-    }
-    
-    var temp2 = $('#resouceUsage option:selected').val();
-    var exclusiveResourceUsage = false;    
-    if(temp2 == 'exclusive'){
-        exclusiveResourceUsage = true; 
-    }    
-    
+   
     var topology = {};    
     topology.name = topologyName;
-    topology.description = serviceDescription;
-    topology.priority = {
-        'exclusive': exclusiveResourceUsage,
-        'level': priorityLevel
-    };
-    
-    topology.trigger = 'on-demand';
-    
+    topology.description = serviceDescription;    
     topology.tasks = generateTaskList(scene);           
 
     // submit the generated topology
@@ -267,27 +234,22 @@ function generateTaskList(scene)
     
     for(var i=0; i<scene.blocks.length; i++){
         var block = scene.blocks[i];
-        if (block.type == 'Task') {
+        if (block.type == 'Task') {            
             var task = {};
             
             task.name = block.values['name'];
             task.operator = block.values['operator'];
-            task.groupBy = block.values['groupby'];
+
             task.input_streams = [];
             task.output_streams = [];
             
-            for(var j=0; j<block.values['inputs'].length; j++){
-                var inputstream = findInputStream(scene, block.id, j);  
-                
-                if( inputstream != null ) {
-                    inputstream.shuffling = block.values['inputs'][j];                
-                    task.input_streams.push(inputstream);                    
-                }                              
-            }
+            // look for all input streams associated with this task
+            task.input_streams = findInputStream(scene, block.id); 
                         
+            // figure out the defined output stream types                        
             for(var j=0; j<block.values['outputs'].length; j++){
                 var outputstream = {};
-                outputstream.type = block.values['outputs'][j];
+                outputstream.entity_type = block.values['outputs'][j];
                 task.output_streams.push(outputstream);
             }
             
@@ -298,39 +260,64 @@ function generateTaskList(scene)
     return tasklist;
 }
 
-function findInputStream(scene, blockid, inputIdx)
+function findInputStream(scene, blockid)
 {
+    var inputstreams = [];
+    
     for(var i=0; i<scene.edges.length; i++) {
         var edge = scene.edges[i];
-        if (edge.block2 == blockid && edge.connector2[2] == inputIdx) {
+        if (edge.block2 == blockid) {
             var inputblockId = edge.block1;
             
             for(var j=0; j<scene.blocks.length; j++){
                 var block = scene.blocks[j];
                 if (block.id == inputblockId){
-                    if (block.type == 'Task') {
+                    if (block.type == 'Shuffle') {                        
                         var inputstream = {};
                         
-                        var attributeName = edge.connector1[0];
-                        var valueIndx = edge.connector1[2];
-                        inputstream.type = block.values[attributeName][valueIndx];
+                        inputstream.selected_type = findInputType(scene,  block.id, j)                                             
+                        inputstream.selected_attributes = block.values['selectedattributes'];
+                        inputstream.groupby = block.values['groupby'];                                                                        
                         inputstream.scoped = true;
                         
-                        return inputstream;                        
-                    } else if (block.type == 'InputStream') {
+                        inputstreams.push(inputstream)
+                    } else if (block.type == 'EntityStream') {
                         var inputstream = {};
-                        
-                        inputstream.type = block.values['entitytype'];
+                                                
+                        inputstream.selected_type = block.values['selectedtype'];                        
+                        inputstream.selected_attributes = block.values['selectedattributes'];
+                        inputstream.groupby = block.values['groupby'];                                                
                         inputstream.scoped = block.values['scoped'];
                         
-                        return inputstream;                                                
+                        inputstreams.push(inputstream)
                     }
                 }
             }
         }
     }        
     
-    return null;
+    return inputstreams;
+}
+
+function findInputType(scene, blockId, inputIdx)
+{
+    var inputType = "unknown";
+
+    for(var i=0; i<scene.edges.length; i++){
+        var edge = scene.edges[i];
+        
+        if(edge.block2 == blockId && edge.connector2[2] == inputIdx) {
+            for(var j=0; j<scene.blocks.length; j++) {
+                var block = scene.blocks[j];
+                
+                if(block.id == edge.block1) {                    
+                    inputType = block.values.Outputs;                    
+                }
+            }               
+        }
+    }
+    
+    return inputType;
 }
 
 function submitTopology(topology, designboard)
@@ -352,15 +339,15 @@ function submitTopology(topology, designboard)
         console.log(data);  
               
         // update the list of submitted topologies
-        showTopologies();               
+        showTemplates();               
     }).catch( function(error) {
         console.log('failed to submit the topology');
     });    
 }
 
-function showTopologies() 
+function showTemplates() 
 {    
-    $('#info').html('list of all registered service topologies');
+    $('#info').html('list of all registered service templates');
     
     var html = '<div style="margin-bottom: 10px;"><button id="registerTopology" type="button" class="btn btn-primary">register</button></div>';
     html += '<div id="topologyList"></div>';
