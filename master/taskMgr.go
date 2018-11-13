@@ -18,18 +18,6 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
-// to support serverless fog computing over cloud and edges
-type FogFunction struct {
-	Name        string `json:"name"`
-	User        string `json:"user"`
-	Type        string `json:"type"`
-	Code        string `json:"code"`
-	DockerImage string `json:"dockerImage"`
-
-	InputTriggers    []Selector  `json:"inputTriggers,omitempty"`
-	OutputAnnotators []Annotator `json:"outputAnnotators,omitempty"`
-}
-
 type Selector struct {
 	Name               string      `json:"name"`
 	Conditions         []Condition `json:"conditionList,omitempty"`
@@ -42,12 +30,7 @@ type Condition struct {
 	Value string `json:"value"`
 }
 
-type Annotator struct {
-	EntityType     string `json:"entityType"`
-	InputInherited bool   `json:"groupInherited,omitempty"`
-}
-
-type FunctionTask struct {
+type TaskConfig struct {
 	TaskID string
 
 	FunctionType string
@@ -142,7 +125,7 @@ func (registredEntity *EntityRegistration) Update(newUpdates *EntityRegistration
 }
 
 type InputSubscription struct {
-	InputSelector               Selector
+	InputSelector               InputStreamConfig
 	SubID                       string
 	ReceivedEntityRegistrations map[string]*EntityRegistration
 }
@@ -202,23 +185,21 @@ func (gInfo *GroupInfo) GetHash() string {
 }
 
 type FogFlow struct {
-	Function *FogFunction
+	Intent *TaskIntent
 
 	//to keep the unique values of all grouped keys
 	UniqueKeys map[string][]interface{}
 
-	Subscriptions    map[string]*InputSubscription
-	OutputAnnotators []Annotator
+	Subscriptions map[string]*InputSubscription
 
-	ExecutionPlan  map[string]*FunctionTask          // represent the derived execution plan
+	ExecutionPlan  map[string]*TaskConfig            // represent the derived execution plan
 	DeploymentPlan map[string]*ScheduledTaskInstance // represent the derived deployment plan
 }
 
 func (flow *FogFlow) Init() {
 	flow.UniqueKeys = make(map[string][]interface{})
-	flow.OutputAnnotators = make([]Annotator, 0)
 	flow.Subscriptions = make(map[string]*InputSubscription)
-	flow.ExecutionPlan = make(map[string]*FunctionTask)
+	flow.ExecutionPlan = make(map[string]*TaskConfig)
 	flow.DeploymentPlan = make(map[string]*ScheduledTaskInstance)
 }
 
@@ -323,12 +304,16 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 				}
 			}
 		} else {
-			task := FunctionTask{}
-			task.TaskID = flow.Function.Name + "." + hashID
-			task.FunctionType = flow.Function.Type
-			task.FunctionName = flow.Function.Name
-			task.FunctionCode = flow.Function.Code
-			task.DockerImage = flow.Function.DockerImage
+			task := TaskConfig{}
+			task.TaskID = flow.Intent.ServiceName + "." + flow.Intent.TaskObject.Name + hashID
+
+			/*
+				task.FunctionType = flow.Function.Type
+				task.FunctionName = flow.Function.Name
+				task.FunctionCode = flow.Function.Code
+				task.DockerImage = flow.Function.DockerImage */
+			task.DockerImage = flow.Intent.TaskObject.Operator
+
 			task.Status = "scheduled"
 
 			task.Inputs = flow.searchRelevantEntities(&group)
@@ -451,7 +436,7 @@ func (flow *FogFlow) getLocationOfInputs(taskID string) []Point {
 
 	INFO.Println("taskID", taskID)
 
-	hashID := strings.TrimPrefix(taskID, flow.Function.Name+".")
+	hashID := strings.TrimPrefix(taskID, flow.Intent.TaskObject.Name+".")
 
 	INFO.Println("hasID of this task instance in the table = ", hashID)
 
@@ -474,47 +459,47 @@ func (flow *FogFlow) removeGroupKeyFromTable(groupInfo *GroupInfo) {
 
 func (flow *FogFlow) updateGroupedKeyValueTable(sub *InputSubscription, entityID string) {
 	selector := sub.InputSelector
-	name := selector.Name
-	for _, groupKey := range selector.GroupBy {
-		if groupKey == "all" {
-			key := name + "-" + groupKey
-			_, exist := flow.UniqueKeys[key]
-			if exist == false {
-				flow.UniqueKeys[key] = make([]interface{}, 0)
-				flow.UniqueKeys[key] = append(flow.UniqueKeys[key], "all")
-			}
-		} else {
-			key := name + "-" + groupKey
-			entity := sub.ReceivedEntityRegistrations[entityID]
+	name := selector.EntityType
+	groupKey := selector.GroupBy
 
-			var value interface{}
+	if groupKey == "ALL" {
+		key := name + "-" + groupKey
+		_, exist := flow.UniqueKeys[key]
+		if exist == false {
+			flow.UniqueKeys[key] = make([]interface{}, 0)
+			flow.UniqueKeys[key] = append(flow.UniqueKeys[key], "all")
+		}
+	} else {
+		key := name + "-" + groupKey
+		entity := sub.ReceivedEntityRegistrations[entityID]
 
-			switch groupKey {
-			case "id":
-				value = entity.ID
-			case "type":
-				value = entity.Type
-			default:
-				value = entity.MetadataList[groupKey]
-			}
+		var value interface{}
 
-			if _, exist := flow.UniqueKeys[key]; exist { // add this value for the existing key
-				inList := false
-				items := flow.UniqueKeys[key]
-				for _, item := range items {
-					if item == value {
-						inList = true
-						break
-					}
+		switch groupKey {
+		case "EntityID":
+			value = entity.ID
+		case "EntityType":
+			value = entity.Type
+		default:
+			value = entity.MetadataList[groupKey]
+		}
+
+		if _, exist := flow.UniqueKeys[key]; exist { // add this value for the existing key
+			inList := false
+			items := flow.UniqueKeys[key]
+			for _, item := range items {
+				if item == value {
+					inList = true
+					break
 				}
+			}
 
-				if inList == false {
-					flow.UniqueKeys[key] = append(flow.UniqueKeys[key], value)
-				}
-			} else { // create a new key
-				flow.UniqueKeys[key] = make([]interface{}, 0)
+			if inList == false {
 				flow.UniqueKeys[key] = append(flow.UniqueKeys[key], value)
 			}
+		} else { // create a new key
+			flow.UniqueKeys[key] = make([]interface{}, 0)
+			flow.UniqueKeys[key] = append(flow.UniqueKeys[key], value)
 		}
 	}
 
@@ -525,32 +510,33 @@ func (flow *FogFlow) getRelevantGroups(sub *InputSubscription, entityID string) 
 	// group set for the current selector
 	groups := make([]GroupInfo, 0)
 	selector := sub.InputSelector
-	name := selector.Name
+	name := selector.EntityType
 
 	entity := sub.ReceivedEntityRegistrations[entityID]
 
 	myKeySet := make(map[string]bool)
 	info := make(GroupInfo)
-	for _, groupKey := range selector.GroupBy {
-		DEBUG.Printf("group key = %+v\r\n", groupKey)
 
-		key := name + "-" + groupKey
-		if groupKey == "all" {
-			info[key] = "all"
-		} else {
-			var value interface{}
-			switch groupKey {
-			case "id":
-				value = entity.ID
-			case "type":
-				value = entity.Type
-			default:
-				value = entity.MetadataList[groupKey]
-			}
-			info[key] = value
+	groupKey := selector.GroupBy
+
+	DEBUG.Printf("group key = %+v\r\n", groupKey)
+
+	key := name + "-" + groupKey
+	if groupKey == "ALL" {
+		info[key] = "ALL"
+	} else {
+		var value interface{}
+		switch groupKey {
+		case "EntityID":
+			value = entity.ID
+		case "EntityType":
+			value = entity.Type
+		default:
+			value = entity.MetadataList[groupKey]
 		}
-		myKeySet[key] = true
+		info[key] = value
 	}
+	myKeySet[key] = true
 
 	DEBUG.Printf("info %+v\r\n", info)
 
@@ -587,11 +573,10 @@ func (flow *FogFlow) searchRelevantEntities(group *GroupInfo) []InputEntity {
 
 		//restriction
 		restrictions := make(map[string]interface{})
-		for _, key := range selector.GroupBy {
-			groupKey := selector.Name + "-" + key
-			if v, exist := (*group)[groupKey]; exist {
-				restrictions[key] = v
-			}
+		key := selector.GroupBy
+		groupKey := selector.EntityType + "-" + key
+		if v, exist := (*group)[groupKey]; exist {
+			restrictions[key] = v
 		}
 
 		DEBUG.Printf("restriction %+v\r\n", restrictions)
@@ -620,19 +605,11 @@ func (flow *FogFlow) searchRelevantEntities(group *GroupInfo) []InputEntity {
 func (flow *FogFlow) generateOutputs(group *GroupInfo) []*ContextElement {
 	outEntities := make([]*ContextElement, 0)
 
-	DEBUG.Println("<<<< length of output annotators : ", len(flow.OutputAnnotators))
-
-	for _, annotator := range flow.OutputAnnotators {
+	for _, outputStream := range flow.Intent.TaskObject.OutputStreams {
 		ctxElem := ContextElement{}
 
-		ctxElem.Entity.ID = "Stream." + annotator.EntityType + ".01"
-		ctxElem.Entity.Type = annotator.EntityType
-
-		if annotator.InputInherited == true {
-			for key, value := range *group {
-				DEBUG.Printf("key = %s, value = %s\r\n", key, value)
-			}
-		}
+		ctxElem.Entity.ID = "Stream." + outputStream.EntityType + ".01"
+		ctxElem.Entity.Type = outputStream.EntityType
 
 		outEntities = append(outEntities, &ctxElem)
 	}
@@ -643,9 +620,9 @@ func (flow *FogFlow) generateOutputs(group *GroupInfo) []*ContextElement {
 type TaskMgr struct {
 	master *Master
 
-	//list of all fog functions
-	fogFuncList      map[string]*FogFunction
-	fogFuncList_lock sync.RWMutex
+	//list of all task intents
+	taskIntentList      map[string]*TaskIntent
+	taskIntentList_lock sync.RWMutex
 
 	//for function-based processing flows
 	functionFlows      map[string]*FogFlow
@@ -661,7 +638,7 @@ func NewTaskMgr(myMaster *Master) *TaskMgr {
 }
 
 func (fMgr *TaskMgr) Init() {
-	fMgr.fogFuncList = make(map[string]*FogFunction)
+	fMgr.taskIntentList = make(map[string]*TaskIntent)
 	fMgr.functionFlows = make(map[string]*FogFlow)
 	fMgr.subID2FogFunc = make(map[string]string)
 }
@@ -674,7 +651,7 @@ func (fMgr *TaskMgr) handleTaskIntentUpdate(intentCtxObj *ContextObject) {
 	INFO.Println(intentCtxObj)
 
 	taskIntent := TaskIntent{}
-	jsonText, _ := json.Marshal(intentCtxObj.Attributes["taskintent"].Value.(map[string]interface{}))
+	jsonText, _ := json.Marshal(intentCtxObj.Attributes["intent"].Value.(map[string]interface{}))
 	err := json.Unmarshal(jsonText, &taskIntent)
 	if err == nil {
 		INFO.Println(taskIntent)
@@ -686,67 +663,29 @@ func (fMgr *TaskMgr) handleTaskIntentUpdate(intentCtxObj *ContextObject) {
 }
 
 func (fMgr *TaskMgr) handleTaskIntent(taskIntent *TaskIntent) {
-
-}
-
-/*
-
-func (fMgr *TaskMgr) getFogFunction(entityID string) *FogFunction {
-	//check if it is already exist in the topology list
-	fMgr.fogFuncList_lock.RLock()
-	if fogfunc, ok := fMgr.fogFuncList[entityID]; ok {
-		fMgr.fogFuncList_lock.RUnlock()
-		return fogfunc
-	}
-	fMgr.fogFuncList_lock.RUnlock()
-
-	fogfunctionEntity := fMgr.master.RetrieveContextEntity(entityID)
-	if fogfunctionEntity.Attributes["fogfunction"].Value != nil {
-		fogfunction := FogFunction{}
-
-		valueData, _ := json.Marshal(fogfunctionEntity.Attributes["fogfunction"].Value.(map[string]interface{}))
-		err := json.Unmarshal(valueData, &fogfunction)
-		if err == nil {
-			fMgr.fogFuncList_lock.Lock()
-			fMgr.fogFuncList[entityID] = &fogfunction
-			fMgr.fogFuncList_lock.Unlock()
-
-			return &fogfunction
-		} else {
-			ERROR.Println("=======error happens when loading fog function structure=============")
-			ERROR.Println(err)
-			return nil
-		}
-	} else {
-		return nil
-	}
-}
-
-func (fMgr *TaskMgr) enableFogFunction(f *FogFunction) {
-	INFO.Printf("enable fog function %s\r\n", f.Name)
-	INFO.Printf("function code: %s\r\n", f.Code)
+	INFO.Println("orchestrating task intent")
+	INFO.Println(taskIntent)
 
 	fogflow := FogFlow{}
 
 	fogflow.Init()
+	fogflow.Intent = taskIntent
 
-	fogflow.Function = f
+	uID := taskIntent.ServiceName + "." + taskIntent.TaskObject.Name
 
-	for _, annotator := range f.OutputAnnotators {
-		fogflow.OutputAnnotators = append(fogflow.OutputAnnotators, annotator)
-	}
+	task := taskIntent.TaskObject
 
-	for _, inputSelector := range f.InputTriggers {
-		INFO.Printf("selector: %+v\r\n", inputSelector)
-		subID := fMgr.selector2Subscription(&inputSelector)
+	for _, inputStreamConfig := range task.InputStreams {
+		INFO.Println(inputStreamConfig)
+		subID := fMgr.selector2Subscription(&inputStreamConfig, taskIntent.GeoScope)
 
 		if subID == "" {
-			ERROR.Printf("failed to issue a subscription for this type of input, %+v\r\n", inputSelector)
+			ERROR.Printf("failed to issue a subscription for this type of input, %+v\r\n", inputStreamConfig)
 			continue
 		}
 
 		subscription := InputSubscription{}
-		subscription.InputSelector = inputSelector
+		subscription.InputSelector = inputStreamConfig
 		subscription.SubID = subID
 		subscription.ReceivedEntityRegistrations = make(map[string]*EntityRegistration)
 
@@ -754,27 +693,29 @@ func (fMgr *TaskMgr) enableFogFunction(f *FogFunction) {
 
 		// link this subscriptionId with the fog function name
 		fMgr.subID2FogFunc_lock.Lock()
-		fMgr.subID2FogFunc[subID] = f.Name
+		fMgr.subID2FogFunc[subID] = uID
 		fMgr.subID2FogFunc_lock.Unlock()
-
 	}
 
 	// add this fog function into the function map
 	fMgr.functionFlows_lock.Lock()
-	fMgr.functionFlows[f.Name] = &fogflow
+	fMgr.functionFlows[uID] = &fogflow
 	fMgr.functionFlows_lock.Unlock()
 }
 
-func (fMgr *TaskMgr) disableFogFunction(f *FogFunction) {
-	INFO.Printf("disable fog function %s\r\n", f.Name)
+func (fMgr *TaskMgr) removeTaskIntent(taskIntent *TaskIntent) {
+	INFO.Printf("remove the task intent")
+	INFO.Println(taskIntent)
 
 	// remove this fog function from the function map
+	uID := taskIntent.ServiceName + "." + taskIntent.TaskObject.Name
+
 	fMgr.functionFlows_lock.Lock()
-	delete(fMgr.functionFlows, f.Name)
+	delete(fMgr.functionFlows, uID)
 	fMgr.functionFlows_lock.Unlock()
 }
 
-func (fMgr *TaskMgr) selector2Subscription(inputSelector *Selector) string {
+func (fMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geoscope OperationScope) string {
 	availabilitySubscription := SubscribeContextAvailabilityRequest{}
 
 	// define the selected attributes
@@ -786,52 +727,16 @@ func (fMgr *TaskMgr) selector2Subscription(inputSelector *Selector) string {
 	}
 
 	// define the specified restrictions
-	for _, condition := range inputSelector.Conditions {
-		INFO.Printf("condition: %+v\r\n", condition)
 
-		switch condition.Type {
-		case "EntityId":
-			newEntity := EntityId{}
-			newEntity.ID = condition.Value
-			newEntity.IsPattern = false
-			availabilitySubscription.Entities = make([]EntityId, 0)
-			availabilitySubscription.Entities = append(availabilitySubscription.Entities, newEntity)
+	// apply the required entity type
+	newEntity := EntityId{}
+	newEntity.Type = inputSelector.EntityType
+	newEntity.IsPattern = true
+	availabilitySubscription.Entities = make([]EntityId, 0)
+	availabilitySubscription.Entities = append(availabilitySubscription.Entities, newEntity)
 
-		case "EntityType":
-			newEntity := EntityId{}
-			newEntity.Type = condition.Value
-			newEntity.IsPattern = true
-			availabilitySubscription.Entities = make([]EntityId, 0)
-			availabilitySubscription.Entities = append(availabilitySubscription.Entities, newEntity)
-
-		case "GeoScope(Nearby)":
-			scope := OperationScope{}
-			scope.Type = "nearby"
-			scope.Value = condition.Value
-			availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, scope)
-
-		case "GeoScope(InCircle)":
-			scope := OperationScope{}
-			scope.Type = "circle"
-			scope.Value = condition.Value
-			availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, scope)
-
-		case "GeoScope(InPolygon)":
-			scope := OperationScope{}
-			scope.Type = "polygon"
-			scope.Value = condition.Value
-			availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, scope)
-
-		case "TimeScope":
-			// to be supported
-
-		case "StringQuery":
-			scope := OperationScope{}
-			scope.Type = "stringquery"
-			scope.Value = condition.Value
-			availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, scope)
-		}
-	}
+	// apply the required geoscope
+	availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, geoscope)
 
 	DEBUG.Printf("issue NGSI9 subscription: %+v\r\n", availabilitySubscription)
 
@@ -839,8 +744,6 @@ func (fMgr *TaskMgr) selector2Subscription(inputSelector *Selector) string {
 	subscriptionId := fMgr.master.subscribeContextAvailability(&availabilitySubscription)
 	return subscriptionId
 }
-
-*/
 
 func (fMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction string, entityRegistration *EntityRegistration) {
 	INFO.Println("handle the change of stream availability")

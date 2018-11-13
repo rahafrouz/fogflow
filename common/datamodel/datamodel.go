@@ -71,19 +71,19 @@ type QoS struct {
 
 type ServiceIntent struct {
 	ID             string
-	QoS            string   `json:"qos"`
-	GeoScope       string   `json:"geoscope"`
-	Priority       Priority `json:"priority"`
-	TopologyName   string   `json:"topology"`
+	QoS            string         `json:"qos"`
+	GeoScope       OperationScope `json:"geoscope"`
+	Priority       Priority       `json:"priority"`
+	TopologyName   string         `json:"topology"`
 	TopologyObject *Topology
 }
 
 type TaskIntent struct {
-	QoS        string   `json:"qos"`
-	GeoScope   string   `json:"geoscope"`
-	Priority   Priority `json:"priority"`
-	TaskName   string   `json:"task"`
-	TaskObject *Task
+	QoS         string         `json:"qos"`
+	GeoScope    OperationScope `json:"geoscope"`
+	Priority    Priority       `json:"priority"`
+	ServiceName string         `json:"service"`
+	TaskObject  Task           `json:"task"`
 }
 
 type InputStreamConfig struct {
@@ -115,7 +115,7 @@ type Task struct {
 	OutputStreams []OutputStreamConfig `json:"output_streams"`
 }
 
-func (task *Task) isSeparable() bool {
+func (task *Task) CanBeDivided() bool {
 	var flag = true
 
 	for _, inputStream := range task.InputStreams {

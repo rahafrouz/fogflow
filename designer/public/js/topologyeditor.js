@@ -49,7 +49,7 @@ blocks.register({
         },          
         {
             name: "Groupby",
-            choices: ["EntityID","EntityType", "EntityAttribute"],
+            choices: ["ALL", "EntityID", "EntityType", "EntityAttribute"],
             defaultValue: "EntityID",            
             attrs: "editable"
         },              
@@ -83,7 +83,7 @@ blocks.register({
         },          
         {
             name: "Groupby",
-            choices: ["EntityID","EntityType", "EntityAttribute"],
+            choices: ["ALL", "EntityID", "EntityType", "EntityAttribute"],
             defaultValue: "EntityID",
             attrs: "editable"
         },
@@ -100,7 +100,6 @@ blocks.register({
         }                          
     ]
 });
-
 
 }
 

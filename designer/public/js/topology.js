@@ -621,8 +621,18 @@ function submitIntent()
     var qos = $('#QoS option:selected').val();    
     intent.qos = qos;    
         
-    var geoscope = $('#geoscope option:selected').val();    
-    intent.geoscope = geoscope;   
+    var scope = $('#geoscope option:selected').val(); 
+
+    var operationScope = {};    
+    if (scope == 'custom') {        
+        operationScope.scopeType = geoscope.type
+        operationScope.scopeValue = geoscope.value    
+    } else {
+        operationScope.scopeType = scope
+        operationScope.scopeValue = scope
+    }
+       
+    intent.geoscope = operationScope;   
     
     var intentCtxObj = {};
     
