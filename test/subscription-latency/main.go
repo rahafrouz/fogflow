@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	. "fogflow/common/ngsi"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	. "github.com/smartfog/fogflow/common/ngsi"
 )
 
 func main() {
@@ -128,7 +129,7 @@ func update(config *Config, i int) {
 	ctxObj.Attributes["time"] = ValueObject{Type: "integer", Value: currentTime}
 
 	client := NGSI10Client{IoTBrokerURL: config.UpdateBrokerURL}
-	err := client.UpdateContext(&ctxObj)
+	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
 		fmt.Println(err)
 	}

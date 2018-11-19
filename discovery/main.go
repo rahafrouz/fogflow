@@ -13,8 +13,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/mmcloughlin/geohash"
 
-	. "fogflow/common/config"
-	. "fogflow/common/ngsi"
+	. "github.com/smartfog/fogflow/common/config"
+	. "github.com/smartfog/fogflow/common/ngsi"
 )
 
 func main() {

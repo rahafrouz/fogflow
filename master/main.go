@@ -9,7 +9,7 @@ import (
 
 	"github.com/mmcloughlin/geohash"
 
-	. "fogflow/common/config"
+	. "github.com/smartfog/fogflow/common/config"
 )
 
 func main() {
