@@ -16,7 +16,7 @@
         "debug": "stdout"
     },
     "discovery": {
-        "port": 8080,
+        "port": 443,
         "postgresql": {
             "dbreset": true,
             "username": "postgres",
@@ -27,7 +27,7 @@
         }    
     },
     "broker": {
-        "port": 80
+        "port": 8080
     },    
     "master": {
         "ngsi_agent_port": 1060    
@@ -36,7 +36,7 @@
         "container_autoremove": false       
     },
     "designer": {
-        "webSrvPort": 443,
+        "webSrvPort": 80,
         "agentPort": 1030               
     },    
     "rabbitmq": {
