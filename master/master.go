@@ -40,8 +40,12 @@ type Master struct {
 	dockerImageList      map[string][]DockerImage
 	dockerImageList_lock sync.RWMutex
 
+	//list of all submitted topologies
+	topologyList      map[string]*Topology
+	topologyList_lock sync.RWMutex
+
 	//to manage the orchestration of service topology
-	topologyMgr *TopologyMgr
+	serviceMgr *ServiceMgr
 
 	//to manage the orchestration of tasks
 	taskMgr *TaskMgr
@@ -60,6 +64,7 @@ func (master *Master) Start(configuration *Config) {
 
 	master.operatorList = make(map[string]Operator)
 	master.dockerImageList = make(map[string][]DockerImage)
+	master.topologyList = make(map[string]*Topology)
 
 	master.subID2Type = make(map[string]string)
 
@@ -90,8 +95,8 @@ func (master *Master) Start(configuration *Config) {
 	master.taskMgr = NewTaskMgr(master)
 	master.taskMgr.Init()
 
-	master.topologyMgr = NewTopologyMgr(master)
-	master.topologyMgr.Init()
+	master.serviceMgr = NewServiceMgr(master)
+	master.serviceMgr.Init()
 
 	// announce myself to the nearby IoT Broker
 	master.registerMyself()
@@ -231,11 +236,11 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 
 	// topology to define service template
 	case "Topology":
-		master.topologyMgr.handleTopologyUpdate(contextObj)
+		master.handleTopologyUpdate(contextObj)
 
 	// service orchestration
 	case "ServiceIntent":
-		master.topologyMgr.handleServiceIntentUpdate(contextObj)
+		master.serviceMgr.handleServiceIntentUpdate(contextObj)
 
 	// task orchestration
 	case "TaskIntent":
@@ -293,6 +298,32 @@ func (master *Master) prefetchDockerImages(image DockerImage) {
 		taskMsg := SendMessage{Type: "PREFETCH_IMAGE", RoutingKey: workerID + ".", From: master.id, PayLoad: image}
 		master.communicator.Publish(&taskMsg)
 	}
+}
+
+//
+// to update the topology list
+//
+func (master *Master) handleTopologyUpdate(topologyCtxObj *ContextObject) {
+	topology := Topology{}
+	jsonText, _ := json.Marshal(topologyCtxObj.Attributes["template"].Value.(map[string]interface{}))
+	err := json.Unmarshal(jsonText, &topology)
+	if err == nil {
+		INFO.Println(topology)
+		master.topologyList_lock.Lock()
+		master.topologyList[topology.Name] = &topology
+		master.topologyList_lock.Unlock()
+
+		INFO.Println(topology)
+	}
+}
+
+func (master *Master) getTopologyByName(name string) *Topology {
+	// find the required topology object
+	master.topologyList_lock.RLock()
+	defer master.topologyList_lock.RUnlock()
+
+	topology := master.topologyList[name]
+	return topology
 }
 
 func (master *Master) queryWorkers() []*ContextObject {

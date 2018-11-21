@@ -625,8 +625,8 @@ type TaskMgr struct {
 	taskIntentList_lock sync.RWMutex
 
 	//for function-based processing flows
-	functionFlows      map[string]*FogFlow
-	functionFlows_lock sync.RWMutex
+	fogFlows      map[string]*FogFlow
+	fogFlows_lock sync.RWMutex
 
 	//mapping from availability subscription to function
 	subID2FogFunc      map[string]string
@@ -637,16 +637,16 @@ func NewTaskMgr(myMaster *Master) *TaskMgr {
 	return &TaskMgr{master: myMaster}
 }
 
-func (fMgr *TaskMgr) Init() {
-	fMgr.taskIntentList = make(map[string]*TaskIntent)
-	fMgr.functionFlows = make(map[string]*FogFlow)
-	fMgr.subID2FogFunc = make(map[string]string)
+func (tMgr *TaskMgr) Init() {
+	tMgr.taskIntentList = make(map[string]*TaskIntent)
+	tMgr.fogFlows = make(map[string]*FogFlow)
+	tMgr.subID2FogFunc = make(map[string]string)
 }
 
 //
 // deal with received task intents
 //
-func (fMgr *TaskMgr) handleTaskIntentUpdate(intentCtxObj *ContextObject) {
+func (tMgr *TaskMgr) handleTaskIntentUpdate(intentCtxObj *ContextObject) {
 	INFO.Println("handle taskintent update")
 	INFO.Println(intentCtxObj)
 
@@ -659,10 +659,10 @@ func (fMgr *TaskMgr) handleTaskIntentUpdate(intentCtxObj *ContextObject) {
 		INFO.Println(err)
 	}
 
-	fMgr.handleTaskIntent(&taskIntent)
+	tMgr.handleTaskIntent(&taskIntent)
 }
 
-func (fMgr *TaskMgr) handleTaskIntent(taskIntent *TaskIntent) {
+func (tMgr *TaskMgr) handleTaskIntent(taskIntent *TaskIntent) {
 	INFO.Println("orchestrating task intent")
 	INFO.Println(taskIntent)
 
@@ -677,7 +677,7 @@ func (fMgr *TaskMgr) handleTaskIntent(taskIntent *TaskIntent) {
 
 	for _, inputStreamConfig := range task.InputStreams {
 		INFO.Println(inputStreamConfig)
-		subID := fMgr.selector2Subscription(&inputStreamConfig, taskIntent.GeoScope)
+		subID := tMgr.selector2Subscription(&inputStreamConfig, taskIntent.GeoScope)
 
 		if subID == "" {
 			ERROR.Printf("failed to issue a subscription for this type of input, %+v\r\n", inputStreamConfig)
@@ -692,30 +692,30 @@ func (fMgr *TaskMgr) handleTaskIntent(taskIntent *TaskIntent) {
 		fogflow.Subscriptions[subID] = &subscription
 
 		// link this subscriptionId with the fog function name
-		fMgr.subID2FogFunc_lock.Lock()
-		fMgr.subID2FogFunc[subID] = uID
-		fMgr.subID2FogFunc_lock.Unlock()
+		tMgr.subID2FogFunc_lock.Lock()
+		tMgr.subID2FogFunc[subID] = uID
+		tMgr.subID2FogFunc_lock.Unlock()
 	}
 
 	// add this fog function into the function map
-	fMgr.functionFlows_lock.Lock()
-	fMgr.functionFlows[uID] = &fogflow
-	fMgr.functionFlows_lock.Unlock()
+	tMgr.fogFlows_lock.Lock()
+	tMgr.fogFlows[uID] = &fogflow
+	tMgr.fogFlows_lock.Unlock()
 }
 
-func (fMgr *TaskMgr) removeTaskIntent(taskIntent *TaskIntent) {
+func (tMgr *TaskMgr) removeTaskIntent(taskIntent *TaskIntent) {
 	INFO.Printf("remove the task intent")
 	INFO.Println(taskIntent)
 
 	// remove this fog function from the function map
 	uID := taskIntent.ServiceName + "." + taskIntent.TaskObject.Name
 
-	fMgr.functionFlows_lock.Lock()
-	delete(fMgr.functionFlows, uID)
-	fMgr.functionFlows_lock.Unlock()
+	tMgr.fogFlows_lock.Lock()
+	delete(tMgr.fogFlows, uID)
+	tMgr.fogFlows_lock.Unlock()
 }
 
-func (fMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geoscope OperationScope) string {
+func (tMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geoscope OperationScope) string {
 	availabilitySubscription := SubscribeContextAvailabilityRequest{}
 
 	// define the selected attributes
@@ -741,30 +741,30 @@ func (fMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geo
 	DEBUG.Printf("issue NGSI9 subscription: %+v\r\n", availabilitySubscription)
 
 	// issue the constructed subscription to IoT Discovery
-	subscriptionId := fMgr.master.subscribeContextAvailability(&availabilitySubscription)
+	subscriptionId := tMgr.master.subscribeContextAvailability(&availabilitySubscription)
 	return subscriptionId
 }
 
-func (fMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction string, entityRegistration *EntityRegistration) {
+func (tMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction string, entityRegistration *EntityRegistration) {
 	INFO.Println("handle the change of stream availability")
 	INFO.Println(subID, entityAction, entityRegistration.ID)
 
-	fMgr.subID2FogFunc_lock.RLock()
-	if _, exist := fMgr.subID2FogFunc[subID]; exist == false {
+	tMgr.subID2FogFunc_lock.RLock()
+	if _, exist := tMgr.subID2FogFunc[subID]; exist == false {
 		INFO.Println("this subscripption is not issued by me")
-		fMgr.subID2FogFunc_lock.RUnlock()
+		tMgr.subID2FogFunc_lock.RUnlock()
 		return
 	}
 
-	funcName := fMgr.subID2FogFunc[subID]
+	funcName := tMgr.subID2FogFunc[subID]
 
-	fMgr.subID2FogFunc_lock.RUnlock()
+	tMgr.subID2FogFunc_lock.RUnlock()
 
 	// update the received context availability information
-	fMgr.functionFlows_lock.Lock()
-	defer fMgr.functionFlows_lock.Unlock()
+	tMgr.fogFlows_lock.Lock()
+	defer tMgr.fogFlows_lock.Unlock()
 
-	fogflow := fMgr.functionFlows[funcName]
+	fogflow := tMgr.fogFlows[funcName]
 
 	deploymentActions := fogflow.MetadataDrivenTaskOrchestration(subID, entityAction, entityRegistration)
 
@@ -785,10 +785,10 @@ func (fMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction 
 
 			// find out the worker close to the available inputs
 			locations := fogflow.getLocationOfInputs(taskID)
-			scheduledTaskInstance.WorkerID = fMgr.master.SelectWorker(locations)
+			scheduledTaskInstance.WorkerID = tMgr.master.SelectWorker(locations)
 
 			if scheduledTaskInstance.WorkerID != "" {
-				fMgr.master.DeployTask(&scheduledTaskInstance)
+				tMgr.master.DeployTask(&scheduledTaskInstance)
 			}
 
 			// update the deployment plan
@@ -799,20 +799,20 @@ func (fMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction 
 
 			scheduledTaskInstance := deploymentAction.ActionInfo.(ScheduledTaskInstance)
 			if scheduledTaskInstance.WorkerID != "" {
-				fMgr.master.TerminateTask(&scheduledTaskInstance)
+				tMgr.master.TerminateTask(&scheduledTaskInstance)
 			}
 
 		case "ADD_INPUT":
 			INFO.Printf("add input %+v\r\n", deploymentAction.ActionInfo)
 
 			flowInfo := deploymentAction.ActionInfo.(FlowInfo)
-			fMgr.master.AddInputEntity(flowInfo)
+			tMgr.master.AddInputEntity(flowInfo)
 
 		case "REMOVE_INPUT":
 			INFO.Printf("remove input %+v\r\n", deploymentAction.ActionInfo)
 
 			flowInfo := deploymentAction.ActionInfo.(FlowInfo)
-			fMgr.master.RemoveInputEntity(flowInfo)
+			tMgr.master.RemoveInputEntity(flowInfo)
 		}
 	}
 }

@@ -62,8 +62,7 @@ type Config struct {
 		DBCfg DatabaseCfg `json:"postgresql"`
 	} `json:"discovery"`
 	Broker struct {
-		Port          int `json:"port"`
-		WebSocketPort int `json:"websocket"`
+		Port int `json:"port"`
 	} `json:"broker"`
 	Master struct {
 		AgentPort int `json:"ngsi_agent_port"`
