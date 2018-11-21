@@ -27,7 +27,7 @@
         }    
     },
     "broker": {
-        "port": 80,
+        "port": 80
     },    
     "master": {
         "ngsi_agent_port": 1060    
