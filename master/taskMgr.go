@@ -352,7 +352,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 			// create a deployment action
 			deploymentAction := DeploymentAction{}
 			deploymentAction.ActionType = "ADD_TASK"
-			deploymentAction.ActionInfo = task
+			deploymentAction.ActionInfo = taskInstance
 
 			deploymentActions = append(deploymentActions, &deploymentAction)
 		}
