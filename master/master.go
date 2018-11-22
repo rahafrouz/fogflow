@@ -574,15 +574,6 @@ func (master *Master) DetermineDockerImage(operatorName string, wID string) stri
 	return selectedDockerImageName
 }
 
-func (master *Master) SelectDockerImage(workerID string, operatorName string) string {
-	for _, imageList := range master.dockerImageList {
-		dockerImage := imageList[0]
-		return dockerImage.ImageName
-	}
-
-	return ""
-}
-
 //
 // to select the worker that is closest to the given points
 //

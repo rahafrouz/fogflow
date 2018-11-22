@@ -780,7 +780,7 @@ func (tMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction 
 			// find out which implementation image to be used by the assigned worker
 			operator := scheduledTaskInstance.OperatorName
 			workerID := scheduledTaskInstance.WorkerID
-			scheduledTaskInstance.DockerImage = tMgr.master.SelectDockerImage(workerID, operator)
+			scheduledTaskInstance.DockerImage = tMgr.master.DetermineDockerImage(operator, workerID)
 
 			if scheduledTaskInstance.WorkerID != "" {
 				tMgr.master.DeployTask(&scheduledTaskInstance)

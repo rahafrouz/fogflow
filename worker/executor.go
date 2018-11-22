@@ -348,16 +348,14 @@ func (e *Executor) LaunchTask(task *ScheduledTaskInstance) bool {
 	// subscribe input streams on behalf of the launched task
 	taskCtx.Subscriptions = make([]string, 0)
 
-	for _, streamType := range task.Inputs {
-		for _, streamId := range streamType.Streams {
-			subID, err := e.subscribeInputStream(freePort, streamType.Type, streamId)
-			if err == nil {
-				fmt.Println("===========subID = ", subID)
-				taskCtx.Subscriptions = append(taskCtx.Subscriptions, subID)
-				taskCtx.EntityID2SubID[streamId] = subID
-			} else {
-				fmt.Println(err)
-			}
+	for _, inputStream := range task.Inputs {
+		subID, err := e.subscribeInputStream(freePort, inputStream.Type, inputStream.ID)
+		if err == nil {
+			fmt.Println("===========subID = ", subID)
+			taskCtx.Subscriptions = append(taskCtx.Subscriptions, subID)
+			taskCtx.EntityID2SubID[inputStream.ID] = subID
+		} else {
+			fmt.Println(err)
 		}
 	}
 
