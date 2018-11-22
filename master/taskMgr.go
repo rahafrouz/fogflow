@@ -428,11 +428,10 @@ func (flow *FogFlow) getLocationOfInputs(taskID string) []Point {
 
 	INFO.Println("taskID", taskID)
 
-	hashID := strings.TrimPrefix(taskID, flow.Intent.TaskObject.Name+".")
+	//hashID := strings.TrimPrefix(taskID, flow.Intent.TaskObject.Name+".")
+	//INFO.Println("hasID of this task instance in the table = ", hashID)
 
-	INFO.Println("hasID of this task instance in the table = ", hashID)
-
-	task := flow.ExecutionPlan[hashID]
+	task := flow.ExecutionPlan[taskID]
 
 	for _, input := range task.Inputs {
 		locations = append(locations, input.Location)
