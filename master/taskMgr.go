@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"strings"
 	"sync"
 
 	. "github.com/smartfog/fogflow/common/config"
