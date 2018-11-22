@@ -302,8 +302,8 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 			}
 		} else {
 			task := TaskConfig{}
-			task.TaskID = flow.Intent.ServiceName + "." + flow.Intent.TaskObject.Name + hashID
 
+			task.TaskID = hashID
 			task.Operator = flow.Intent.TaskObject.Operator
 
 			task.Status = "scheduled"
@@ -600,7 +600,7 @@ func (flow *FogFlow) generateOutputs(group *GroupInfo) []*ContextElement {
 	for _, outputStream := range flow.Intent.TaskObject.OutputStreams {
 		ctxElem := ContextElement{}
 
-		ctxElem.Entity.ID = "Stream." + outputStream.EntityType + ".01"
+		ctxElem.Entity.ID = outputStream.EntityType + ".01"
 		ctxElem.Entity.Type = outputStream.EntityType
 
 		outEntities = append(outEntities, &ctxElem)
