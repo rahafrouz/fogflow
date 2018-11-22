@@ -33,10 +33,7 @@ type Condition struct {
 type TaskConfig struct {
 	TaskID string
 
-	FunctionType string
-	FunctionName string
-	FunctionCode string
-	DockerImage  string
+	Operator string
 
 	WorkerID string
 
@@ -78,17 +75,17 @@ func (registredEntity *EntityRegistration) IsMatched(restrictions map[string]int
 	matched := true
 
 	for key, value := range restrictions {
-		if key == "all" && value == "all" {
+		if key == "ALL" {
 			continue
 		}
 
 		switch key {
-		case "id":
+		case "EntityID":
 			if registredEntity.ID != value {
 				matched = false
 				break
 			}
-		case "type":
+		case "EntityType":
 			if registredEntity.Type != value {
 				matched = false
 				break
@@ -307,12 +304,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 			task := TaskConfig{}
 			task.TaskID = flow.Intent.ServiceName + "." + flow.Intent.TaskObject.Name + hashID
 
-			/*
-				task.FunctionType = flow.Function.Type
-				task.FunctionName = flow.Function.Name
-				task.FunctionCode = flow.Function.Code
-				task.DockerImage = flow.Function.DockerImage */
-			task.DockerImage = flow.Intent.TaskObject.Operator
+			task.Operator = flow.Intent.TaskObject.Operator
 
 			task.Status = "scheduled"
 
@@ -322,19 +314,19 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 			flow.ExecutionPlan[hashID] = &task
 
 			//generate a deployment action
-			DEBUG.Printf("new task %+v\r\n", task)
+			DEBUG.Println("new task")
+			DEBUG.Println(task)
 			DEBUG.Printf("hashID %s, taskID %s\r\n", hashID, task.TaskID)
 
 			taskInstance := ScheduledTaskInstance{}
 
 			taskInstance.ID = task.TaskID
-			taskInstance.ServiceName = "system"
-			taskInstance.TaskType = task.FunctionType
-			taskInstance.TaskName = task.FunctionName
-			taskInstance.FunctionCode = task.FunctionCode
-			taskInstance.DockerImage = task.DockerImage
-			taskInstance.IsExclusive = false
-			taskInstance.PriorityLevel = 100
+
+			taskInstance.ServiceName = flow.Intent.ServiceName
+			taskInstance.OperatorName = task.Operator
+
+			taskInstance.IsExclusive = flow.Intent.Priority.IsExclusive
+			taskInstance.PriorityLevel = flow.Intent.Priority.Level
 			taskInstance.Status = "scheduled"
 
 			// set up its input streams
@@ -342,7 +334,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 			for _, inputEntity := range task.Inputs {
 				instream := InputStream{}
 				instream.Type = inputEntity.Type
-				instream.Streams = []string{inputEntity.ID}
+				instream.ID = inputEntity.ID
 
 				taskInstance.Inputs = append(taskInstance.Inputs, instream)
 			}
@@ -361,7 +353,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 			// create a deployment action
 			deploymentAction := DeploymentAction{}
 			deploymentAction.ActionType = "ADD_TASK"
-			deploymentAction.ActionInfo = taskInstance
+			deploymentAction.ActionInfo = task
 
 			deploymentActions = append(deploymentActions, &deploymentAction)
 		}
@@ -786,6 +778,11 @@ func (tMgr *TaskMgr) HandleContextAvailabilityUpdate(subID string, entityAction 
 			// find out the worker close to the available inputs
 			locations := fogflow.getLocationOfInputs(taskID)
 			scheduledTaskInstance.WorkerID = tMgr.master.SelectWorker(locations)
+
+			// find out which implementation image to be used by the assigned worker
+			operator := scheduledTaskInstance.OperatorName
+			workerID := scheduledTaskInstance.WorkerID
+			scheduledTaskInstance.DockerImage = tMgr.master.SelectDockerImage(workerID, operator)
 
 			if scheduledTaskInstance.WorkerID != "" {
 				tMgr.master.DeployTask(&scheduledTaskInstance)

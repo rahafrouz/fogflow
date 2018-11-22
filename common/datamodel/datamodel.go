@@ -160,9 +160,16 @@ type DockerImage struct {
 }
 
 type InputStream struct {
-	Type    string
-	Streams []string // a set of stream IDs
-	URLs    map[string]string
+	Type string
+	ID   string
+}
+
+func (myInputStream *InputStream) Equal(otherInputStream *InputStream) bool {
+	if myInputStream.Type == otherInputStream.Type && myInputStream.ID == myInputStream.ID {
+		return true
+	} else {
+		return false
+	}
 }
 
 type OutputStream struct {
@@ -180,6 +187,7 @@ type TaskInstance struct {
 	WorkerID string
 }
 
+/*
 func compareStreamSet(setA []string, setB []string) bool {
 	if len(setA) != len(setB) {
 		return false
@@ -201,6 +209,7 @@ func compareStreamSet(setA []string, setB []string) bool {
 
 	return true
 }
+*/
 
 func (myInstance *TaskInstance) Equal(otherInstance *TaskInstance) bool {
 	// check the task name
@@ -215,11 +224,9 @@ func (myInstance *TaskInstance) Equal(otherInstance *TaskInstance) bool {
 	for _, myInputStream := range myInstance.Inputs {
 		var exist = false
 		for _, otherInputStream := range otherInstance.Inputs {
-			if myInputStream.Type == otherInputStream.Type {
-				if compareStreamSet(myInputStream.Streams, otherInputStream.Streams) == true {
-					exist = true
-					break
-				}
+			if myInputStream.Equal(&otherInputStream) == true {
+				exist = true
+				break
 			}
 		}
 
@@ -239,10 +246,13 @@ type FlowInfo struct {
 }
 
 type ScheduledTaskInstance struct {
-	ID           string
-	ServiceName  string
+	ID          string
+	ServiceName string
+	TaskName    string
+
+	OperatorName string
+
 	TaskType     string
-	TaskName     string
 	FunctionCode string
 	DockerImage  string
 
