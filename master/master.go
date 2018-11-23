@@ -461,37 +461,7 @@ func (master *Master) onTaskUpdate(from string, update *TaskUpdate) {
 	INFO.Println(update)
 }
 
-//
-// to carry out deployment actions given by the orchestrators of fog functions and service topologies
-//
-func (master *Master) DeployTasks(taskInstances []*ScheduledTaskInstance) {
-	for _, pScheduledTaskInstance := range taskInstances {
-		// convert the operator name into the name of a proper docker image for the assigned worker
-		operatorName := (*pScheduledTaskInstance).DockerImage
-		assignedWorkerID := (*pScheduledTaskInstance).WorkerID
-		(*pScheduledTaskInstance).DockerImage = master.DetermineDockerImage(operatorName, assignedWorkerID)
-
-		taskMsg := SendMessage{Type: "ADD_TASK", RoutingKey: pScheduledTaskInstance.WorkerID + ".", From: master.id, PayLoad: *pScheduledTaskInstance}
-		INFO.Println(taskMsg)
-		master.communicator.Publish(&taskMsg)
-	}
-}
-
-func (master *Master) TerminateTasks(instances []*ScheduledTaskInstance) {
-	INFO.Println("to terminate all scheduled tasks, ", len(instances))
-	for _, instance := range instances {
-		taskMsg := SendMessage{Type: "REMOVE_TASK", RoutingKey: instance.WorkerID + ".", From: master.id, PayLoad: *instance}
-		INFO.Println(taskMsg)
-		master.communicator.Publish(&taskMsg)
-	}
-}
-
 func (master *Master) DeployTask(taskInstance *ScheduledTaskInstance) {
-	// convert the operator name into the name of a proper docker image for the assigned worker
-	operatorName := (*taskInstance).DockerImage
-	assignedWorkerID := (*taskInstance).WorkerID
-	(*taskInstance).DockerImage = master.DetermineDockerImage(operatorName, assignedWorkerID)
-
 	taskMsg := SendMessage{Type: "ADD_TASK", RoutingKey: taskInstance.WorkerID + ".", From: master.id, PayLoad: *taskInstance}
 	INFO.Println(taskMsg)
 	master.communicator.Publish(&taskMsg)
@@ -550,8 +520,8 @@ func (master *Master) DetermineDockerImage(operatorName string, wID string) stri
 	wProfile := master.workers[wID]
 	master.dockerImageList_lock.RLock()
 	for _, image := range master.dockerImageList[operatorName] {
-		DEBUG.Println(image.TargetedOSType, image.TargetedHWType)
-		DEBUG.Println(wProfile.OSType, wProfile.HWType)
+		DEBUG.Println(image)
+		DEBUG.Println(wProfile)
 
 		selectedDockerImageName = image.ImageName + ":" + image.ImageTag
 		break
