@@ -553,20 +553,25 @@ func (master *Master) DetermineDockerImage(operatorName string, wID string) stri
 		DEBUG.Println(image.TargetedOSType, image.TargetedHWType)
 		DEBUG.Println(wProfile.OSType, wProfile.HWType)
 
-		hwType := "X86"
-		osType := "Linux"
+		selectedDockerImageName = image.ImageName + ":" + image.ImageTag
+		break
 
-		if wProfile.HWType == "arm" {
-			hwType = "ARM"
-		}
+		// for the moment, just take the first one, to be fixed in the future
+		/*
+			hwType := "X86"
+			osType := "Linux"
 
-		if wProfile.OSType == "linux" {
-			osType = "Linux"
-		}
+			if wProfile.HWType == "arm" {
+				hwType = "ARM"
+			}
 
-		if image.TargetedOSType == osType && image.TargetedHWType == hwType {
-			selectedDockerImageName = image.ImageName + ":" + image.ImageTag
-		}
+			if wProfile.OSType == "linux" {
+				osType = "Linux"
+			}
+
+			if image.TargetedOSType == osType && image.TargetedHWType == hwType {
+				selectedDockerImageName = image.ImageName + ":" + image.ImageTag
+			} */
 	}
 
 	master.dockerImageList_lock.RUnlock()

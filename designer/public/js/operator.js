@@ -324,7 +324,7 @@ function addDockerImage(image)
     var newImageObject = {};
 
     newImageObject.entityId = {
-        id : image.name + ':' + image.tag, 
+        id : image.name + '.' + image.tag, 
         type: 'DockerImage',
         isPattern: false
     };
