@@ -32,8 +32,8 @@ var client = new NGSI10Client(config.brokerURL);
 
 var myToplogyExamples = [
 {
-    topology: {"name":"anomaly-detection","description":"detect anomaly events from time series data points","priority":{"exclusive":false,"level":50},"trigger":"on-demand","tasks":[{"name":"AnomalyDetector","operator":"anomaly","groupBy":"shop","input_streams":[{"type":"PowerPanel","scoped":true,"shuffling":"unicast"},{"type":"Rule","scoped":false,"shuffling":"broadcast"}],"output_streams":[{"type":"Anomaly"}]},{"name":"Counter","operator":"counter","groupBy":"all","input_streams":[{"type":"Anomaly","scoped":true,"shuffling":"unicast"}],"output_streams":[{"type":"Stat"}]}]},
-    designboard: {"edges":[{"id":1,"block1":1,"connector1":["outputs","output",0],"block2":2,"connector2":["inputs","input",0]},{"id":2,"block1":4,"connector1":["stream","output"],"block2":1,"connector2":["inputs","input",1]},{"id":3,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["inputs","input",0]}],"blocks":[{"id":1,"x":-21,"y":-95,"type":"Task","module":null,"values":{"name":"AnomalyDetector","operator":"anomaly","groupby":"shop","inputs":["unicast","broadcast"],"outputs":["Anomaly"]}},{"id":2,"x":194,"y":-97,"type":"Task","module":null,"values":{"name":"Counter","operator":"counter","groupby":"all","inputs":["unicast"],"outputs":["Stat"]}},{"id":3,"x":-280,"y":-138,"type":"InputStream","module":null,"values":{"entitytype":"PowerPanel","scoped":true}},{"id":4,"x":-279,"y":24,"type":"InputStream","module":null,"values":{"entitytype":"Rule","scoped":false}}]}
+    topology: {"name":"anomaly-detection","description":"detect anomaly events in shops","tasks":[{"name":"Counting","operator":"counter","input_streams":[{"selected_type":"Anomaly","selected_attributes":["all"],"groupby":"ALL","scoped":true}],"output_streams":[{"entity_type":"Stat"}]},{"name":"Detector","operator":"anomaly","input_streams":[{"selected_type":"PowerPanel","selected_attributes":["all"],"groupby":"EntityID","scoped":true},{"selected_type":"Rule","selected_attributes":["all"],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"Anomaly"}]}]},
+    designboard: {"edges":[{"id":2,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]},{"id":3,"block1":2,"connector1":["outputs","output",0],"block2":3,"connector2":["in","input"]},{"id":4,"block1":4,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]},{"id":5,"block1":5,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":202,"y":-146,"type":"Task","module":null,"values":{"name":"Counting","operator":"counter","outputs":["Stat"]}},{"id":2,"x":-194,"y":-134,"type":"Task","module":null,"values":{"name":"Detector","operator":"anomaly","outputs":["Anomaly"]}},{"id":3,"x":4,"y":-18,"type":"Shuffle","module":null,"values":{"selectedattributes":["all"],"groupby":"ALL"}},{"id":4,"x":-447,"y":-179,"type":"EntityStream","module":null,"values":{"selectedtype":"PowerPanel","selectedattributes":["all"],"groupby":"EntityID","scoped":true}},{"id":5,"x":-438,"y":-5,"type":"EntityStream","module":null,"values":{"selectedtype":"Rule","selectedattributes":["all"],"groupby":"ALL","scoped":false}}]} 
 }
 ];
 
@@ -45,7 +45,7 @@ showTemplates();
 
 queryOperatorList();
 
-//queryTopology();
+queryTopology();
 
 
 $(window).on('hashchange', function() {
@@ -155,24 +155,8 @@ function openTopologyEditor(topologyEntity)
         
         var topology = topologyEntity.attributes.template.value;
         
-        $('#topologyName').val(topology.name);
+        $('#serviceName').val(topology.name);
         $('#serviceDescription').val(topology.description);
-		
-		var priority = topology.priority;
-		
-		if (priority.level == 0) {
-			$('#priorityLevel').val('low');
-		} else if (priority.level == 50) {
-			$('#priorityLevel').val('middle');
-		} else if (priority.level == 100) {
-			$('#priorityLevel').val('high');
-		}
-		
-		if (priority.exclusive == true) {
-			$('#resouceUsage').val('exclusive');
-		} else {
-			$('#resouceUsage').val('inclusive');
-		}
     }
 }
 
@@ -276,7 +260,7 @@ function findInputStream(scene, blockid)
                     if (block.type == 'Shuffle') {                        
                         var inputstream = {};
                         
-                        inputstream.selected_type = findInputType(scene,  block.id, j)                                             
+                        inputstream.selected_type = findInputType(scene,  block.id)                                             
                         inputstream.selected_attributes = block.values['selectedattributes'];
                         inputstream.groupby = block.values['groupby'];                                                                        
                         inputstream.scoped = true;
@@ -300,19 +284,21 @@ function findInputStream(scene, blockid)
     return inputstreams;
 }
 
-function findInputType(scene, blockId, inputIdx)
+function findInputType(scene, blockId)
 {
     var inputType = "unknown";
 
     for(var i=0; i<scene.edges.length; i++){
         var edge = scene.edges[i];
         
-        if(edge.block2 == blockId && edge.connector2[2] == inputIdx) {
+        if(edge.block2 == blockId) {
+            var index = edge.connector1[2];     
+            
             for(var j=0; j<scene.blocks.length; j++) {
-                var block = scene.blocks[j];
-                
-                if(block.id == edge.block1) {                    
-                    inputType = block.values.Outputs;                    
+                var block = scene.blocks[j];                
+                if(block.id == edge.block1) {  
+                    console.log(block);
+                    inputType = block.values.outputs[index];                    
                 }
             }               
         }
@@ -323,6 +309,10 @@ function findInputType(scene, blockId, inputIdx)
 
 function submitTopology(topology, designboard)
 {       
+    console.log("==============test========");
+    console.log(JSON.stringify(topology));
+    console.log(JSON.stringify(designboard));
+
     var topologyCtxObj = {};
     
     topologyCtxObj.entityId = {
@@ -337,8 +327,7 @@ function submitTopology(topology, designboard)
     topologyCtxObj.attributes.template = {type: 'object', value: topology};  
         
     client.updateContext(topologyCtxObj).then( function(data) {
-        console.log(data);  
-              
+        console.log(data);                
         // update the list of submitted topologies
         showTemplates();               
     }).catch( function(error) {
@@ -394,7 +383,7 @@ function displayTopologyList(topologies)
     for(var i=0; i<topologies.length; i++){
         var topology = topologies[i];
 		
-    		html += '<tr>'; 
+    	html += '<tr>'; 
 		html += '<td>' + topology.entityId.id;
 		html += '<br><button id="editor-' + topology.entityId.id + '" type="button" class="btn btn-default">editor</button>';
 		html += '<br><button id="delete-' + topology.entityId.id + '" type="button" class="btn btn-default">delete</button>';

@@ -11,6 +11,7 @@ console.log(config.brokerURL);
 addMenuItem('Operator', showOperator);  
 addMenuItem('DockerImage', showDockerImage);    
 
+initOperatorList();
 initDockerImageList();
 
 showOperator();
@@ -160,6 +161,8 @@ function generateOperator(scene)
     // construct the operator based on the design board
     var operator = boardScene2Operator(scene);    
    
+    console.log(operator);
+
     // submit this operator
     submitOperator(operator, scene);
 }
@@ -169,7 +172,7 @@ function submitOperator(operator, designboard)
     var operatorObj = {};
     
     operatorObj.entityId = {
-        id : 'Operator.' + operator.name, 
+        id : operator.name, 
         type: 'Operator',
         isPattern: false
     };
@@ -252,6 +255,45 @@ function showDockerImage()
 }
 
 
+function initOperatorList()
+{
+    var operatorList = [{
+        name: "nodejs",
+        description: "",
+        parameters:[]
+    },{
+        name: "python",
+        description: "",
+        parameters:[]
+    },{
+        name: "counter",
+        description: "",
+        parameters:[]
+    },{
+        name: "anomaly",
+        description: "",
+        parameters:[]
+    },{
+        name: "connectedcar",
+        description: "",
+        parameters:[]
+    }
+    ];
+    
+    var queryReq = {}
+    queryReq.entities = [{type:'Operator', isPattern: true}];               
+    client.queryContext(queryReq).then( function(existingOperatorList) {
+        if (existingOperatorList.length == 0) {
+            for(var i=0; i<operatorList.length; i++) {
+                submitOperator(operatorList[i], {});
+            }          
+        }
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query the operator list');
+    });     
+}
+
 function initDockerImageList()
 {
     var imageList = [{
@@ -313,9 +355,19 @@ function initDockerImageList()
     }
     ];
 
-    for(var i=0; i<imageList.length; i++) {
-        addDockerImage(imageList[i]);
-    }
+    var queryReq = {}
+    queryReq.entities = [{type:'DockerImage', isPattern: true}];               
+    client.queryContext(queryReq).then( function(existingImageList) {
+        if (existingImageList.length == 0) {
+            for(var i=0; i<imageList.length; i++) {
+                addDockerImage(imageList[i]);
+            }          
+        }
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query the image list');
+    }); 
+
 }
 
 function addDockerImage(image) 
