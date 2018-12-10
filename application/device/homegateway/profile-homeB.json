@@ -1,0 +1,11 @@
+{
+    "discoveryURL": "http://10.156.0.5:443/ngsi9",
+    "myIP": "10.156.0.6",
+    "myPort": 8083,
+    "location": {
+        "latitude": 35.942752,
+        "longitude": 139.285090
+    },
+    "iconURL": "/img/home.png",
+    "homeID": "0002"
+}

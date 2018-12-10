@@ -347,8 +347,7 @@ func (master *Master) queryWorkers() []*ContextObject {
 
 func (master *Master) onReceiveContextAvailability(notifyCtxAvailReq *NotifyContextAvailabilityRequest) {
 	INFO.Println("===========RECEIVE CONTEXT AVAILABILITY=========")
-
-	DEBUG.Print("received raw availability notify: %+v\r\n", notifyCtxAvailReq)
+	DEBUG.Println(notifyCtxAvailReq)
 
 	subID := notifyCtxAvailReq.SubscriptionId
 
@@ -406,7 +405,7 @@ func (master *Master) contextRegistration2EntityRegistration(entityId *EntityId,
 
 	entityRegistration.ProvidingApplication = ctxRegistration.ProvidingApplication
 
-	DEBUG.Print("REGISTERATION OF ENTITY CONTEXT AVAILABILITY: %+v\r\n", entityRegistration)
+	DEBUG.Printf("REGISTERATION OF ENTITY CONTEXT AVAILABILITY: %+v\r\n", entityRegistration)
 
 	return &entityRegistration
 }
@@ -515,6 +514,8 @@ func (master *Master) RetrieveContextEntity(eid string) *ContextObject {
 // to select the right docker image of an operator for the selected worker
 //
 func (master *Master) DetermineDockerImage(operatorName string, wID string) string {
+	INFO.Println("select a suitable image to execute on the selected worker")
+
 	selectedDockerImageName := ""
 
 	wProfile := master.workers[wID]
@@ -536,10 +537,13 @@ func (master *Master) DetermineDockerImage(operatorName string, wID string) stri
 
 		if image.TargetedOSType == osType && image.TargetedHWType == hwType {
 			selectedDockerImageName = image.ImageName + ":" + image.ImageTag
+			break
 		}
 	}
 
 	master.dockerImageList_lock.RUnlock()
+
+	DEBUG.Println(selectedDockerImageName)
 
 	return selectedDockerImageName
 }

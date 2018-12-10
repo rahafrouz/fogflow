@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/mmcloughlin/geohash"
-
 	. "github.com/smartfog/fogflow/common/config"
 )
 
