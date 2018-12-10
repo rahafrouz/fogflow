@@ -24,7 +24,6 @@ addMenuItem('Master', showMaster);
 addMenuItem('Worker', showWorkers);    
 addMenuItem('Device', showDevices); 
 addMenuItem('Stream', showStreams); 
-addMenuItem('Task', showTasks);    
 
 
 showArch();
@@ -705,54 +704,6 @@ function displayStreamList(streams)
 	}
        
     html += '</table>';  
-
-	$('#content').html(html);   
-}
-
-function showTasks() 
-{
-    $('#info').html('list of running data processing tasks');
-
-    var queryReq = {}
-    queryReq.entities = [{type:'Task', isPattern: true}];    
-    
-    client.queryContext(queryReq).then( function(taskList) {
-        console.log(taskList);
-        displayTaskList(taskList);
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query context');
-    });     
-}
-
-function displayTaskList(tasks) 
-{
-    if(tasks == null || tasks.length ==0){
-        $('#content').html('');                   
-        return
-    }
-    
-    var html = '<table class="table table-striped table-bordered table-condensed">';
-   
-    html += '<thead><tr>';
-    html += '<th>ID</th>';
-    html += '<th>Type</th>';
-    html += '<th>Attributes</th>';
-    html += '<th>DomainMetadata</th>';    
-    html += '</tr></thead>';    
-       
-    for(var i=0; i<tasks.length; i++){
-        var task = tasks[i];
-		
-        html += '<tr>'; 
-		html += '<td>' + task.entityId.id + '</td>';
-		html += '<td>' + task.entityId.type + '</td>'; 
-		html += '<td>' + JSON.stringify(task.attributes) + '</td>';        
-		html += '<td>' + JSON.stringify(task.metadata) + '</td>';
-		html += '</tr>';	
-	}
-       
-    html += '</table>'; 
 
 	$('#content').html(html);   
 }
