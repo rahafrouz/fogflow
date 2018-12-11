@@ -254,6 +254,29 @@ func (flow *FogFlow) checkInputAvailability() bool {
 	return true
 }
 
+//
+// check the available of all required input stream for a specific task instance
+//
+func (flow *FogFlow) checkInputsOfTaskInstance(taskCfg *TaskConfig) bool {
+	for _, inputstream := range flow.Intent.TaskObject.InputStreams {
+		entityType := inputstream.EntityType
+
+		var exist = false
+		for _, input := range taskCfg.Inputs {
+			if input.Type == entityType {
+				exist = true
+				break
+			}
+		}
+
+		if exist == false {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *InputSubscription) []*DeploymentAction {
 	flow.updateGroupedKeyValueTable(inputSubscription, entityID)
 
@@ -375,7 +398,8 @@ func (flow *FogFlow) removeExecutionPlan(entityID string, inputSubscription *Inp
 		if task, exist := flow.ExecutionPlan[hashID]; exist {
 			INFO.Printf("inputs: %+v", task.Inputs)
 
-			if len(task.Inputs) <= 1 {
+			//if any of the input streams is delete, the task will be terminated
+			if flow.checkInputsOfTaskInstance(task) == false {
 				// remove this task
 				DEBUG.Printf("removing an existing task %+v\r\n", task)
 
