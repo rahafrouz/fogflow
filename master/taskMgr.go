@@ -42,6 +42,15 @@ type TaskConfig struct {
 	Outputs []*ContextElement // the list context elements to report its generated results
 }
 
+func (taskCfg *TaskConfig) removeInput(entityID string) {
+	for i := 0; i < len(taskCfg.Inputs); i++ {
+		if taskCfg.Inputs[i].ID == entityID {
+			taskCfg.Inputs = append(taskCfg.Inputs[:i], taskCfg.Inputs[i+1:]...)
+			i--
+		}
+	}
+}
+
 type InputEntity struct {
 	ID       string
 	Type     string
@@ -258,6 +267,9 @@ func (flow *FogFlow) checkInputAvailability() bool {
 // check the available of all required input stream for a specific task instance
 //
 func (flow *FogFlow) checkInputsOfTaskInstance(taskCfg *TaskConfig) bool {
+	INFO.Println(taskCfg)
+	INFO.Println(flow.Intent.TaskObject)
+
 	for _, inputstream := range flow.Intent.TaskObject.InputStreams {
 		entityType := inputstream.EntityType
 
@@ -397,6 +409,9 @@ func (flow *FogFlow) removeExecutionPlan(entityID string, inputSubscription *Inp
 		// check if the associated task instance is already created
 		if task, exist := flow.ExecutionPlan[hashID]; exist {
 			INFO.Printf("inputs: %+v", task.Inputs)
+
+			// remove it from the task inputs
+			task.removeInput(entityID)
 
 			//if any of the input streams is delete, the task will be terminated
 			if flow.checkInputsOfTaskInstance(task) == false {
