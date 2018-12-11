@@ -159,7 +159,7 @@ func (gInfo *GroupInfo) GetHash() string {
 		sortedpairs = append(sortedpairs, &kvpair)
 
 		//sort the list
-		for i := len(sortedpairs) - 1; i > 0; i++ {
+		for i := len(sortedpairs) - 1; i > 0; i-- {
 			if sortedpairs[i].Key < sortedpairs[i-1].Key {
 				tmp := sortedpairs[i]
 				sortedpairs[i] = sortedpairs[i-1]
