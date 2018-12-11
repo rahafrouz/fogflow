@@ -258,6 +258,8 @@ func (flow *FogFlow) checkInputAvailability() bool {
 // check the available of all required input stream for a specific task instance
 //
 func (flow *FogFlow) checkInputsOfTaskInstance(taskCfg *TaskConfig) bool {
+	INFO.Println(taskCfg)
+	INFO.Println(flow.Intent.TaskObject)
 	for _, inputstream := range flow.Intent.TaskObject.InputStreams {
 		entityType := inputstream.EntityType
 
