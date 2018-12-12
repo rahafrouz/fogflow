@@ -485,11 +485,11 @@ func (tb *ThinBroker) UpdateContext2LocalSite(ctxElem *ContextElement) {
 	hasUpdatedMetadata := hasUpdatedMetadata(ctxElem, tb.entities[eid])
 	tb.entities_lock.Unlock()
 
-	// propogate this update to its subscribers
-	go tb.notifySubscribers(ctxElem)
-
 	// apply the new update to the entity in the entity map
 	tb.updateContextElement(ctxElem)
+
+	// propogate this update to its subscribers
+	go tb.notifySubscribers(ctxElem)
 
 	// register the entity if there is any changes on attribute list, domain metadata
 	if hasUpdatedMetadata == true {
@@ -589,7 +589,16 @@ func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement) {
 
 	//send this context element to the subscriber
 	for _, sid := range subscriberList {
-		elements := []ContextElement{*ctxElem}
+
+		tb.subscriptions_lock.RLock()
+		selectedAttributes := tb.subscriptions[sid].Attributes
+		tb.subscriptions_lock.RUnlock()
+
+		tb.entities_lock.RLock()
+		element := tb.entities[eid].CloneWithSelectedAttributes(selectedAttributes)
+		tb.entities_lock.RUnlock()
+
+		elements := []ContextElement{*element}
 		go tb.sendReliableNotify(elements, sid)
 	}
 }
