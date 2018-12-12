@@ -32,7 +32,7 @@ var client = new NGSI10Client(config.brokerURL);
 
 var myToplogyExamples = [
 {
-    topology: {"name":"anomaly-detection","description":"detect anomaly events in shops","tasks":[{"name":"Counting","operator":"counter","input_streams":[{"selected_type":"Anomaly","selected_attributes":["all"],"groupby":"ALL","scoped":true}],"output_streams":[{"entity_type":"Stat"}]},{"name":"Detector","operator":"anomaly","input_streams":[{"selected_type":"PowerPanel","selected_attributes":["all"],"groupby":"EntityID","scoped":true},{"selected_type":"Rule","selected_attributes":["all"],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"Anomaly"}]}]},
+    topology: {"name":"anomaly-detection","description":"detect anomaly events in shops","tasks":[{"name":"Counting","operator":"counter","input_streams":[{"selected_type":"Anomaly","selected_attributes":[],"groupby":"ALL","scoped":true}],"output_streams":[{"entity_type":"Stat"}]},{"name":"Detector","operator":"anomaly","input_streams":[{"selected_type":"PowerPanel","selected_attributes":[],"groupby":"EntityID","scoped":true},{"selected_type":"Rule","selected_attributes":[],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"Anomaly"}]}]},
     designboard: {"edges":[{"id":2,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]},{"id":3,"block1":2,"connector1":["outputs","output",0],"block2":3,"connector2":["in","input"]},{"id":4,"block1":4,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]},{"id":5,"block1":5,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":202,"y":-146,"type":"Task","module":null,"values":{"name":"Counting","operator":"counter","outputs":["Stat"]}},{"id":2,"x":-194,"y":-134,"type":"Task","module":null,"values":{"name":"Detector","operator":"anomaly","outputs":["Anomaly"]}},{"id":3,"x":4,"y":-18,"type":"Shuffle","module":null,"values":{"selectedattributes":["all"],"groupby":"ALL"}},{"id":4,"x":-447,"y":-179,"type":"EntityStream","module":null,"values":{"selectedtype":"PowerPanel","selectedattributes":["all"],"groupby":"EntityID","scoped":true}},{"id":5,"x":-438,"y":-5,"type":"EntityStream","module":null,"values":{"selectedtype":"Rule","selectedattributes":["all"],"groupby":"ALL","scoped":false}}]} 
 }
 ];
@@ -260,8 +260,14 @@ function findInputStream(scene, blockid)
                     if (block.type == 'Shuffle') {                        
                         var inputstream = {};
                         
-                        inputstream.selected_type = findInputType(scene,  block.id)                                             
-                        inputstream.selected_attributes = block.values['selectedattributes'];
+                        inputstream.selected_type = findInputType(scene,  block.id)          
+                        
+                        if (block.values['selectedattributes'].toUpperCase() == 'ALL') {
+                            inputstream.selected_attributes = [];
+                        } else {
+                            inputstream.selected_attributes = block.values['selectedattributes'];                            
+                        }
+                        
                         inputstream.groupby = block.values['groupby'];                                                                        
                         inputstream.scoped = true;
                         
@@ -269,8 +275,14 @@ function findInputStream(scene, blockid)
                     } else if (block.type == 'EntityStream') {
                         var inputstream = {};
                                                 
-                        inputstream.selected_type = block.values['selectedtype'];                        
-                        inputstream.selected_attributes = block.values['selectedattributes'];
+                        inputstream.selected_type = block.values['selectedtype'];            
+                        
+                        if (block.values['selectedattributes'].toUpperCase() == 'ALL') {
+                            inputstream.selected_attributes = [];
+                        } else {
+                            inputstream.selected_attributes = block.values['selectedattributes'];                            
+                        }                                                            
+                        
                         inputstream.groupby = block.values['groupby'];                                                
                         inputstream.scoped = block.values['scoped'];
                         
