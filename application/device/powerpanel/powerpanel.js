@@ -71,6 +71,10 @@ function registerDevice()
         type: 'point',
         value: profile.location
     };    
+    ctxObj.metadata.shop = {
+        type: 'string',
+        value: profile.id
+    };      
    
     ngsi10client.updateContext(ctxObj).then( function(data) {
         console.log(data);
