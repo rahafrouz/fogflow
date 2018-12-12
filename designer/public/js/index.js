@@ -23,7 +23,7 @@ addMenuItem('Broker', showBrokers);
 addMenuItem('Master', showMaster);    
 addMenuItem('Worker', showWorkers);    
 addMenuItem('Device', showDevices); 
-addMenuItem('Stream', showStreams); 
+addMenuItem('Entity', showEntities); 
 
 
 showArch();
@@ -660,25 +660,25 @@ function showMap()
     return map; 
 }
 
-function showStreams() 
+function showEntities() 
 {
-    $('#info').html('list of all data streams');
+    $('#info').html('list of all entities');
 
     var queryReq = {}
-    queryReq.entities = [{id:'Stream.*', isPattern: true}];    	
+    queryReq.entities = [{id:'.*', isPattern: true}];    	
     
-    client.queryContext(queryReq).then( function(streamList) {
-        console.log(streamList);
-        displayStreamList(streamList);
+    client.queryContext(queryReq).then( function(entityList) {
+        console.log(entityList);
+        displayEntityList(entityList);
     }).catch(function(error) {
         console.log(error);
         console.log('failed to query context');
     });      
 }
 
-function displayStreamList(streams) 
+function displayEntityList(entities) 
 {
-    if(streams == null || streams.length == 0){
+    if(entities == null || entities.length == 0){
         $('#content').html('');           
         return        
     }
@@ -692,14 +692,14 @@ function displayStreamList(streams)
     html += '<th>DomainMetadata</th>';    
     html += '</tr></thead>';    
        
-    for(var i=0; i<streams.length; i++){
-        var stream = streams[i];
+    for(var i=0; i<entities.length; i++){
+        var entity = entities[i];
 		
         html += '<tr>'; 
-		html += '<td>' + stream.entityId.id + '</td>';
-		html += '<td>' + stream.entityId.type + '</td>'; 
-		html += '<td>' + JSON.stringify(stream.attributes) + '</td>';        
-		html += '<td>' + JSON.stringify(stream.metadata) + '</td>';
+		html += '<td>' + entity.entityId.id + '</td>';
+		html += '<td>' + entity.entityId.type + '</td>'; 
+		html += '<td>' + JSON.stringify(entity.attributes) + '</td>';        
+		html += '<td>' + JSON.stringify(entity.metadata) + '</td>';
 		html += '</tr>';	
 	}
        
