@@ -84,7 +84,7 @@ function updateContext()
 {
     var ctxObj = {};
     ctxObj.entityId = {
-        id: 'Stream.' + profile.type + '.' + profile.id,
+        id: 'Device.' + profile.type + '.' + profile.id,
         type: profile.type,
         isPattern: false
     };
@@ -95,22 +95,7 @@ function updateContext()
     ctxObj.attributes.usage = {
         type: 'integer',
         value: degree
-    };
-    ctxObj.attributes.deviceID = {
-        type: 'string',
-        value: profile.type + '.' + profile.id
-    };   	     
-    
-    ctxObj.metadata = {};
-    
-    ctxObj.metadata.location = {
-        type: 'point',
-        value: profile.location
-    }; 
-    ctxObj.metadata.shop = {
-        type: 'string',
-        value: profile.id
-    };	          
+    };       
     
     ngsi10client.updateContext(ctxObj).then( function(data) {
         console.log(data);
