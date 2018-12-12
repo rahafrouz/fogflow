@@ -542,8 +542,14 @@ func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement, checkSelectedAt
 		elements := make([]ContextElement, 0)
 
 		if checkSelectedAttributes == true {
+			selectedAttributes := make([]string, 0)
+
 			tb.subscriptions_lock.RLock()
-			selectedAttributes := tb.subscriptions[sid].Attributes
+
+			if tb.subscriptions[sid].Attributes != nil {
+				selectedAttributes = append(selectedAttributes, tb.subscriptions[sid].Attributes...)
+			}
+
 			tb.subscriptions_lock.RUnlock()
 
 			tb.entities_lock.RLock()
