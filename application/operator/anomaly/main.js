@@ -37,7 +37,7 @@ function processInputStreamData(data)
 function anomalyDetection(msg) 
 {	
 	var watts = msg.attributes.usage.value;
-	var deviceID = msg.attributes.deviceID.value;	
+	var deviceID = msg.entityId.id;
 	var shopID =  msg.metadata.shop.value;	
 	var location = msg.metadata.location;
 	
