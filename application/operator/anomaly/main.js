@@ -181,7 +181,12 @@ function handleNotify(req, ctxObjects, res)
 
 	for(var i = 0; i < ctxObjects.length; i++) {
 		console.log(ctxObjects[i]);
-        processInputStreamData(ctxObjects[i]);
+        
+        try {
+            processInputStreamData(ctxObjects[i]);        
+        } catch (error) {
+            console.log(error)
+        }        
 	}
 }
 
