@@ -253,13 +253,38 @@ func (ctxObj *ContextObject) IsEmpty() bool {
 }
 
 type ContextElement struct {
-	Entity              EntityId           `json:"entityId"`
-	ID                  string             `json:"id"`
-	Type                string             `json:"type,omitempty"`
-	IsPattern           string             `json:"isPattern"`
-	AttributeDomainName string             `json:"attributeDomainName,omitempty"`
-	Attributes          []ContextAttribute `json:"attributes,omitempty"`
-	Metadata            []ContextMetadata  `json:"domainMetadata,omitempty"`
+	Entity    EntityId `json:"entityId"`
+	ID        string   `json:"id"`
+	Type      string   `json:"type,omitempty"`
+	IsPattern string   `json:"isPattern"`
+	//	AttributeDomainName string             `json:"attributeDomainName,omitempty"`
+	Attributes []ContextAttribute `json:"attributes,omitempty"`
+	Metadata   []ContextMetadata  `json:"domainMetadata,omitempty"`
+}
+
+func (ce *ContextElement) CloneWithSelectedAttributes(selectedAttributes []string) *ContextElement {
+	preparedCopy := ContextElement{}
+
+	preparedCopy.Entity = ce.Entity
+
+	if len(selectedAttributes) == 0 {
+		preparedCopy.Attributes = make([]ContextAttribute, len(ce.Attributes))
+		copy(preparedCopy.Attributes, ce.Attributes)
+	} else {
+		preparedCopy.Attributes = make([]ContextAttribute, 0)
+		for _, requiredAttrName := range selectedAttributes {
+			for _, ctxAttr := range ce.Attributes {
+				if ctxAttr.Name == requiredAttrName {
+					preparedCopy.Attributes = append(preparedCopy.Attributes, ctxAttr)
+				}
+			}
+		}
+	}
+
+	preparedCopy.Metadata = make([]ContextMetadata, len(ce.Metadata))
+	copy(preparedCopy.Metadata, ce.Metadata)
+
+	return &preparedCopy
 }
 
 func (ce *ContextElement) GetAttribute(name string) *ContextAttribute {
@@ -290,6 +315,7 @@ func (ce *ContextElement) IsEmpty() bool {
 	}
 }
 
+/*
 func (ce *ContextElement) Clone(orig *ContextElement) {
 	ce.Entity.ID = orig.Entity.ID
 	ce.Entity.Type = orig.Entity.Type
@@ -297,6 +323,7 @@ func (ce *ContextElement) Clone(orig *ContextElement) {
 
 	ce.AttributeDomainName = orig.AttributeDomainName
 }
+*/
 
 func (ce *ContextElement) GetScope() OperationScope {
 	updateScope := OperationScope{}
@@ -337,7 +364,7 @@ func (element *ContextElement) MarshalJSON() ([]byte, error) {
 		convertedElement.Type = element.Type
 		convertedElement.IsPattern = element.IsPattern
 
-		convertedElement.AttributeDomainName = element.AttributeDomainName
+		//convertedElement.AttributeDomainName = element.AttributeDomainName
 
 		convertedElement.Attributes = make([]OrionContextAttribute, 0)
 
@@ -356,15 +383,15 @@ func (element *ContextElement) MarshalJSON() ([]byte, error) {
 		return json.Marshal(&convertedElement)
 	} else {
 		return json.Marshal(&struct {
-			Entity              EntityId           `json:"entityId"`
-			AttributeDomainName string             `json:"attributeDomainName,omitempty"`
-			Attributes          []ContextAttribute `json:"attributes,omitempty"`
-			Metadata            []ContextMetadata  `json:"domainMetadata,omitempty"`
+			Entity EntityId `json:"entityId"`
+			//AttributeDomainName string             `json:"attributeDomainName,omitempty"`
+			Attributes []ContextAttribute `json:"attributes,omitempty"`
+			Metadata   []ContextMetadata  `json:"domainMetadata,omitempty"`
 		}{
-			Entity:              element.Entity,
-			AttributeDomainName: element.AttributeDomainName,
-			Attributes:          element.Attributes,
-			Metadata:            element.Metadata,
+			Entity: element.Entity,
+			//AttributeDomainName: element.AttributeDomainName,
+			Attributes: element.Attributes,
+			Metadata:   element.Metadata,
 		})
 	}
 }

@@ -349,7 +349,7 @@ func (e *Executor) LaunchTask(task *ScheduledTaskInstance) bool {
 	taskCtx.Subscriptions = make([]string, 0)
 
 	for _, inputStream := range task.Inputs {
-		subID, err := e.subscribeInputStream(freePort, inputStream.Type, inputStream.ID)
+		subID, err := e.subscribeInputStream(freePort, &inputStream)
 		if err == nil {
 			fmt.Println("===========subID = ", subID)
 			taskCtx.Subscriptions = append(taskCtx.Subscriptions, subID)
@@ -455,22 +455,24 @@ func (e *Executor) deregisterTask(taskID string) {
 	}
 }
 
-func (e *Executor) subscribeInputStream(agentPort string, streamType string, streamId string) (string, error) {
+func (e *Executor) subscribeInputStream(agentPort string, inputStream *InputStream) (string, error) {
 	subscription := SubscribeContextRequest{}
 
 	newEntity := EntityId{}
 
-	if len(streamId) > 0 { // for a specific context entity
+	if len(inputStream.ID) > 0 { // for a specific context entity
 		newEntity.IsPattern = false
-		newEntity.Type = streamType
-		newEntity.ID = streamId
+		newEntity.Type = inputStream.Type
+		newEntity.ID = inputStream.ID
 	} else { // for all context entities with a specific type
-		newEntity.Type = streamType
+		newEntity.Type = inputStream.Type
 		newEntity.IsPattern = true
 	}
 
 	subscription.Entities = make([]EntityId, 0)
 	subscription.Entities = append(subscription.Entities, newEntity)
+
+	subscription.Attributes = inputStream.AttributeList
 
 	subscription.Reference = "http://" + e.workerCfg.InternalIP + ":" + agentPort
 
@@ -600,11 +602,11 @@ func (e *Executor) onAddInput(flow *FlowInfo) {
 		return
 	}
 
-	subID, err := e.subscribeInputStream(taskCtx.ListeningPort, flow.EntityType, flow.EntityID)
+	subID, err := e.subscribeInputStream(taskCtx.ListeningPort, &flow.InputStream)
 	if err == nil {
 		fmt.Println("===========subscribe new input = ", flow, " , subID = ", subID)
 		taskCtx.Subscriptions = append(taskCtx.Subscriptions, subID)
-		taskCtx.EntityID2SubID[flow.EntityID] = subID
+		taskCtx.EntityID2SubID[flow.InputStream.ID] = subID
 	} else {
 		ERROR.Println(err)
 	}
@@ -615,7 +617,7 @@ func (e *Executor) onRemoveInput(flow *FlowInfo) {
 	defer e.taskMap_lock.Unlock()
 
 	taskCtx := e.taskInstances[flow.TaskInstanceID]
-	subID := taskCtx.EntityID2SubID[flow.EntityID]
+	subID := taskCtx.EntityID2SubID[flow.InputStream.ID]
 
 	err := e.unsubscribeInputStream(subID)
 	if err != nil {
@@ -629,5 +631,5 @@ func (e *Executor) onRemoveInput(flow *FlowInfo) {
 		}
 	}
 
-	delete(taskCtx.EntityID2SubID, flow.EntityID)
+	delete(taskCtx.EntityID2SubID, flow.InputStream.ID)
 }

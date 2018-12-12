@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"strings"
 	"sync"
 
 	. "github.com/smartfog/fogflow/common/config"
@@ -52,9 +53,10 @@ func (taskCfg *TaskConfig) removeInput(entityID string) {
 }
 
 type InputEntity struct {
-	ID       string
-	Type     string
-	Location Point
+	ID            string
+	Type          string
+	AttributeList []string
+	Location      Point
 }
 
 type EntityRegistration struct {
@@ -320,11 +322,20 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 				if newInput == true {
 					DEBUG.Printf("new input %+v to task %+v\r\n", entity, task)
 
+					inputEntity := InputEntity{}
+					inputEntity.ID = entity.ID
+					inputEntity.Type = entity.Type
+					inputEntity.AttributeList = inputSubscription.InputSelector.SelectedAttributes
+
+					task.Inputs = append(task.Inputs, inputEntity)
+
 					//generate a deployment action
 					flowInfo := FlowInfo{}
 
-					flowInfo.EntityID = entity.ID
-					flowInfo.EntityType = entity.Type
+					flowInfo.InputStream.ID = inputEntity.ID
+					flowInfo.InputStream.Type = inputEntity.Type
+					flowInfo.InputStream.AttributeList = inputEntity.AttributeList
+
 					flowInfo.TaskInstanceID = task.TaskID
 					flowInfo.WorkerID = flow.DeploymentPlan[task.TaskID].WorkerID
 
@@ -370,6 +381,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 				instream := InputStream{}
 				instream.Type = inputEntity.Type
 				instream.ID = inputEntity.ID
+				instream.AttributeList = inputEntity.AttributeList
 
 				taskInstance.Inputs = append(taskInstance.Inputs, instream)
 			}
@@ -445,7 +457,7 @@ func (flow *FogFlow) removeExecutionPlan(entityID string, inputSubscription *Inp
 				//generate a deployment action
 				flowInfo := FlowInfo{}
 
-				flowInfo.EntityID = entityID
+				flowInfo.InputStream.ID = entityID
 				flowInfo.TaskInstanceID = task.TaskID
 				flowInfo.WorkerID = flow.DeploymentPlan[task.TaskID].WorkerID
 
@@ -618,6 +630,8 @@ func (flow *FogFlow) searchRelevantEntities(group *GroupInfo) []InputEntity {
 				inputEntity.ID = entityRegistration.ID
 				inputEntity.Type = entityRegistration.Type
 
+				inputEntity.AttributeList = selector.SelectedAttributes
+
 				//the location metadata will be used later to decide where to deploy the fog function instance
 				inputEntity.Location = entityRegistration.getLocation()
 
@@ -748,14 +762,6 @@ func (tMgr *TaskMgr) removeTaskIntent(taskIntent *TaskIntent) {
 func (tMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geoscope OperationScope) string {
 	availabilitySubscription := SubscribeContextAvailabilityRequest{}
 
-	// define the selected attributes
-	availabilitySubscription.Attributes = make([]string, 0)
-	for _, attribute := range inputSelector.SelectedAttributes {
-		if attribute != "all" {
-			availabilitySubscription.Attributes = append(availabilitySubscription.Attributes, attribute)
-		}
-	}
-
 	// define the specified restrictions
 
 	// apply the required entity type
@@ -764,6 +770,14 @@ func (tMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geo
 	newEntity.IsPattern = true
 	availabilitySubscription.Entities = make([]EntityId, 0)
 	availabilitySubscription.Entities = append(availabilitySubscription.Entities, newEntity)
+
+	// apply the required attributes
+	availabilitySubscription.Attributes = make([]string, 0)
+	for _, attribute := range inputSelector.SelectedAttributes {
+		if strings.EqualFold(attribute, "all") == false {
+			availabilitySubscription.Attributes = append(availabilitySubscription.Attributes, attribute)
+		}
+	}
 
 	// apply the required geoscope
 	availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, geoscope)

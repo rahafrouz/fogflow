@@ -160,8 +160,9 @@ type DockerImage struct {
 }
 
 type InputStream struct {
-	Type string
-	ID   string
+	Type          string
+	ID            string
+	AttributeList []string
 }
 
 func (myInputStream *InputStream) Equal(otherInputStream *InputStream) bool {
@@ -239,8 +240,7 @@ func (myInstance *TaskInstance) Equal(otherInstance *TaskInstance) bool {
 }
 
 type FlowInfo struct {
-	EntityID       string
-	EntityType     string
+	InputStream    InputStream
 	TaskInstanceID string
 	WorkerID       string
 }

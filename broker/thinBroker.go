@@ -178,7 +178,7 @@ func (tb *ThinBroker) getEntity(eid string) *ContextElement {
 		element := ContextElement{}
 
 		element.Entity = entity.Entity
-		element.AttributeDomainName = entity.AttributeDomainName
+		//element.AttributeDomainName = entity.AttributeDomainName
 		element.Attributes = make([]ContextAttribute, len(entity.Attributes))
 		copy(element.Attributes, entity.Attributes)
 		element.Metadata = make([]ContextMetadata, len(entity.Metadata))
@@ -304,7 +304,8 @@ func (tb *ThinBroker) QueryContext(w rest.ResponseWriter, r *rest.Request) {
 				for _, eid := range entityList {
 					tb.entities_lock.RLock()
 					if element, exist := tb.entities[eid.ID]; exist {
-						matchedCtxElement = append(matchedCtxElement, *element)
+						returnedElement := element.CloneWithSelectedAttributes(queryCtxReq.Attributes)
+						matchedCtxElement = append(matchedCtxElement, *returnedElement)
 					}
 					tb.entities_lock.RUnlock()
 				}
@@ -596,10 +597,15 @@ func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement) {
 func (tb *ThinBroker) notifyOneSubscriberWithCurrentStatus(entities []EntityId, sid string) {
 	elements := make([]ContextElement, 0)
 
+	tb.subscriptions_lock.RLock()
+	selectedAttributes := tb.subscriptions[sid].Attributes
+	tb.subscriptions_lock.RUnlock()
+
 	tb.entities_lock.Lock()
 	for _, entity := range entities {
 		if element, exist := tb.entities[entity.ID]; exist {
-			elements = append(elements, *element)
+			returnedElement := element.CloneWithSelectedAttributes(selectedAttributes)
+			elements = append(elements, *returnedElement)
 		}
 	}
 	tb.entities_lock.Unlock()
