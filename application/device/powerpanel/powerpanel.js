@@ -121,12 +121,6 @@ process.on('SIGINT', function()
             console.log('failed to delete context');
         });        
 
-        // to delete the stream    
-        var entity = {
-            id: 'Stream.' + profile.type + '.' + profile.id,
-            type: 'Stream',
-            isPattern: false
-        };
         ngsi10client.deleteContext(entity).then( function(data) {
             console.log(data);
         }).catch(function(error) {

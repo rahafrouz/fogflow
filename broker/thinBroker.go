@@ -201,7 +201,7 @@ func (tb *ThinBroker) deleteEntity(eid string) error {
 	// inform the subscribers that this entity is deleted by sending a empty context element without any attribute, metadata
 	emptyElement := ContextElement{}
 	emptyElement.Entity.ID = eid
-	tb.notifySubscribers(&emptyElement)
+	tb.notifySubscribers(&emptyElement, false)
 
 	//unregister this entity from IoT Discovery
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
@@ -489,7 +489,7 @@ func (tb *ThinBroker) UpdateContext2LocalSite(ctxElem *ContextElement) {
 	tb.updateContextElement(ctxElem)
 
 	// propogate this update to its subscribers
-	go tb.notifySubscribers(ctxElem)
+	go tb.notifySubscribers(ctxElem, true)
 
 	// register the entity if there is any changes on attribute list, domain metadata
 	if hasUpdatedMetadata == true {
@@ -512,56 +512,6 @@ func (tb *ThinBroker) UpdateContext2RemoteSite(ctxElem *ContextElement, updateAc
 	}
 }
 
-/*
-func (tb *ThinBroker) UpdateContext2LocalSite(w rest.ResponseWriter, r *rest.Request) {
-	updateCtxReq := UpdateContextRequest{}
-
-	err := r.DecodeJsonPayload(&updateCtxReq)
-	if err != nil {
-		rest.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// send out the response
-	updateCtxResp := UpdateContextResponse{}
-	updateCtxResp.ErrorCode.Code = 200
-	updateCtxResp.ErrorCode.ReasonPhrase = "OK"
-	w.WriteJson(&updateCtxResp)
-
-	// perform the update action accordingly
-	switch updateCtxReq.UpdateAction {
-	case "UPDATE":
-		for _, ctxElem := range updateCtxReq.ContextElements {
-			tb.entities_lock.Lock()
-			eid := ctxElem.Entity.ID
-			hasUpdatedMetadata := hasUpdatedMetadata(&ctxElem, tb.entities[eid])
-			tb.entities_lock.Unlock()
-
-			// propogate this update to its subscribers
-			go tb.notifySubscribers(&ctxElem)
-
-			// apply the new update to the entity in the entity map
-			tb.updateContextElement(&ctxElem)
-
-			// register the entity if there is any changes on attribute list, domain metadata
-			if hasUpdatedMetadata == true {
-				//fmt.Println("===========has updated metadata============")
-				tb.registerContextElement(&ctxElem)
-			}
-		}
-
-	case "DELETE":
-		fmt.Println("===========delete========")
-		fmt.Printf("%+v\r\n", updateCtxReq)
-
-		// remove this entity from the entity map
-		for _, ctxElem := range updateCtxReq.ContextElements {
-			tb.deleteEntity(ctxElem.Entity.ID)
-		}
-	}
-}
-*/
-
 func (tb *ThinBroker) NotifyContext(w rest.ResponseWriter, r *rest.Request) {
 	notifyCtxReq := NotifyContextRequest{}
 	err := r.DecodeJsonPayload(&notifyCtxReq)
@@ -576,11 +526,11 @@ func (tb *ThinBroker) NotifyContext(w rest.ResponseWriter, r *rest.Request) {
 
 	// inform its subscribers
 	for _, ctxResp := range notifyCtxReq.ContextResponses {
-		go tb.notifySubscribers(&ctxResp.ContextElement)
+		go tb.notifySubscribers(&ctxResp.ContextElement, false)
 	}
 }
 
-func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement) {
+func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement, checkSelectedAttributes bool) {
 	eid := ctxElem.Entity.ID
 
 	tb.e2sub_lock.RLock()
@@ -589,16 +539,22 @@ func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement) {
 
 	//send this context element to the subscriber
 	for _, sid := range subscriberList {
+		elements := make([]ContextElement, 0)
 
-		tb.subscriptions_lock.RLock()
-		selectedAttributes := tb.subscriptions[sid].Attributes
-		tb.subscriptions_lock.RUnlock()
+		if checkSelectedAttributes == true {
+			tb.subscriptions_lock.RLock()
+			selectedAttributes := tb.subscriptions[sid].Attributes
+			tb.subscriptions_lock.RUnlock()
 
-		tb.entities_lock.RLock()
-		element := tb.entities[eid].CloneWithSelectedAttributes(selectedAttributes)
-		tb.entities_lock.RUnlock()
+			tb.entities_lock.RLock()
+			element := tb.entities[eid].CloneWithSelectedAttributes(selectedAttributes)
+			tb.entities_lock.RUnlock()
 
-		elements := []ContextElement{*element}
+			elements = append(elements, *element)
+		} else {
+			elements = append(elements, *ctxElem)
+		}
+
 		go tb.sendReliableNotify(elements, sid)
 	}
 }
