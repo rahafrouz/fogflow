@@ -232,6 +232,9 @@ func (flow *FogFlow) MetadataDrivenTaskOrchestration(subID string, entityAction 
 			DEBUG.Println("create new entity")
 		}
 
+		//update the group keyvalue table for orchestration
+		flow.updateGroupedKeyValueTable(inputSubscription, entityID)
+
 		//check what needs to be instantiated when all required inputs are available
 		if flow.checkInputAvailability() == true {
 			INFO.Println("input available")
@@ -290,8 +293,6 @@ func (flow *FogFlow) checkInputsOfTaskInstance(taskCfg *TaskConfig) bool {
 }
 
 func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *InputSubscription) []*DeploymentAction {
-	flow.updateGroupedKeyValueTable(inputSubscription, entityID)
-
 	groups := flow.getRelevantGroups(inputSubscription, entityID)
 
 	DEBUG.Printf("groups = %+v\r\n", groups)
