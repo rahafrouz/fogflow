@@ -33,7 +33,13 @@
         "ngsi_agent_port": 1060    
     },
     "worker": {
-        "container_autoremove": false       
+        "container_autoremove": false,
+        "registry": {
+            "username": "fogflow",
+            "password": "UIff@2017fog",
+            "email": "bin.cheng@neclab.eu",
+            "serveraddress": "https://hub.docker.com"
+        }
     },
     "designer": {
         "webSrvPort": 80,
