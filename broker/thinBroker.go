@@ -546,8 +546,10 @@ func (tb *ThinBroker) notifySubscribers(ctxElem *ContextElement, checkSelectedAt
 
 			tb.subscriptions_lock.RLock()
 
-			if tb.subscriptions[sid].Attributes != nil {
-				selectedAttributes = append(selectedAttributes, tb.subscriptions[sid].Attributes...)
+			if subscription, exist := tb.subscriptions[sid]; exist {
+				if subscription.Attributes != nil {
+					selectedAttributes = append(selectedAttributes, tb.subscriptions[sid].Attributes...)
+				}
 			}
 
 			tb.subscriptions_lock.RUnlock()
