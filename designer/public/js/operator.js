@@ -277,6 +277,30 @@ function initOperatorList()
         name: "connectedcar",
         description: "",
         parameters:[]
+    },{
+        name: "recommender",
+        description: "",
+        parameters:[]
+    },{
+        name: "privatesite",
+        description: "",
+        parameters:[]
+    },{
+        name: "publicsite",
+        description: "",
+        parameters:[]
+    },{
+        name: "pushbutton",
+        description: "",
+        parameters:[]
+    },{
+        name: "acoustic",
+        description: "",
+        parameters:[]
+    },{
+        name: "speaker",
+        description: "",
+        parameters:[]
     }
     ];
     
@@ -351,6 +375,48 @@ function initDockerImageList()
         hwType: "X86",
         osType: "Linux",
         operatorName: "publicsite",
+        prefetched: false
+    },{
+        name: "pushbutton",
+        tag: "latest",
+        hwType: "ARM",
+        osType: "Linux",
+        operatorName: "pushbutton",
+        prefetched: false
+    },{
+        name: "acoustic",
+        tag: "latest",
+        hwType: "ARM",
+        osType: "Linux",
+        operatorName: "acoustic",
+        prefetched: false
+    },{
+        name: "speaker",
+        tag: "latest",
+        hwType: "ARM",
+        osType: "Linux",
+        operatorName: "speaker",
+        prefetched: false
+    },{
+        name: "pushbutton",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "pushbutton",
+        prefetched: false
+    },{
+        name: "acoustic",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "acoustic",
+        prefetched: false
+    },{
+        name: "speaker",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "speaker",
         prefetched: false
     }
     ];

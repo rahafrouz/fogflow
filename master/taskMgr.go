@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -649,10 +650,10 @@ func (flow *FogFlow) searchRelevantEntities(group *GroupInfo) []InputEntity {
 func (flow *FogFlow) generateOutputs(group *GroupInfo) []*ContextElement {
 	outEntities := make([]*ContextElement, 0)
 
-	for _, outputStream := range flow.Intent.TaskObject.OutputStreams {
+	for i, outputStream := range flow.Intent.TaskObject.OutputStreams {
 		ctxElem := ContextElement{}
 
-		ctxElem.Entity.ID = outputStream.EntityType + ".01"
+		ctxElem.Entity.ID = outputStream.EntityType + "." + group.GetHash() + "." + strconv.Itoa(i+1)
 		ctxElem.Entity.Type = outputStream.EntityType
 
 		outEntities = append(outEntities, &ctxElem)

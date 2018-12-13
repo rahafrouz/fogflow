@@ -23,7 +23,7 @@ addMenuItem('Broker', showBrokers);
 addMenuItem('Master', showMaster);    
 addMenuItem('Worker', showWorkers);    
 addMenuItem('Device', showDevices); 
-addMenuItem('Entity', showEntities); 
+//addMenuItem('Entity', showEntities); 
 
 
 showArch();

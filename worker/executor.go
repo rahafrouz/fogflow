@@ -414,6 +414,9 @@ func (e *Executor) registerTask(task *ScheduledTaskInstance, portNum string, con
 	ctxObj.Attributes["status"] = ValueObject{Type: "string", Value: task.Status}
 	ctxObj.Attributes["worker"] = ValueObject{Type: "string", Value: task.WorkerID}
 
+	ctxObj.Attributes["task"] = ValueObject{Type: "string", Value: task.TaskName}
+	ctxObj.Attributes["service"] = ValueObject{Type: "string", Value: task.ServiceName}
+
 	ctxObj.Metadata = make(map[string]ValueObject)
 	ctxObj.Metadata["topology"] = ValueObject{Type: "string", Value: task.ServiceName}
 	ctxObj.Metadata["worker"] = ValueObject{Type: "string", Value: task.WorkerID}

@@ -34,6 +34,18 @@ var myToplogyExamples = [
 {
     topology: {"name":"anomaly-detection","description":"detect anomaly events in shops","tasks":[{"name":"Counting","operator":"counter","input_streams":[{"selected_type":"Anomaly","selected_attributes":[],"groupby":"ALL","scoped":true}],"output_streams":[{"entity_type":"Stat"}]},{"name":"Detector","operator":"anomaly","input_streams":[{"selected_type":"PowerPanel","selected_attributes":[],"groupby":"EntityID","scoped":true},{"selected_type":"Rule","selected_attributes":[],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"Anomaly"}]}]},
     designboard: {"edges":[{"id":2,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]},{"id":3,"block1":2,"connector1":["outputs","output",0],"block2":3,"connector2":["in","input"]},{"id":4,"block1":4,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]},{"id":5,"block1":5,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":202,"y":-146,"type":"Task","module":null,"values":{"name":"Counting","operator":"counter","outputs":["Stat"]}},{"id":2,"x":-194,"y":-134,"type":"Task","module":null,"values":{"name":"Detector","operator":"anomaly","outputs":["Anomaly"]}},{"id":3,"x":4,"y":-18,"type":"Shuffle","module":null,"values":{"selectedattributes":["all"],"groupby":"ALL"}},{"id":4,"x":-447,"y":-179,"type":"EntityStream","module":null,"values":{"selectedtype":"PowerPanel","selectedattributes":["all"],"groupby":"EntityID","scoped":true}},{"id":5,"x":-438,"y":-5,"type":"EntityStream","module":null,"values":{"selectedtype":"Rule","selectedattributes":["all"],"groupby":"ALL","scoped":false}}]} 
+},{
+    topology: {"name":"PrivateSiteEstimation","description":"to estimate the free parking lots from a private parking site","tasks":[{"name":"Estimation","operator":"privatesite","input_streams":[{"selected_type":"PrivateSite","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":26,"y":-47,"type":"Task","module":null,"values":{"name":"Estimation","operator":"privatesite","outputs":["Out"]}},{"id":2,"x":-302,"y":-87,"type":"EntityStream","module":null,"values":{"selectedtype":"PrivateSite","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]} 
+},{
+    topology: {"name":"PublicSiteEstimation","description":"to estimate the free parking lot from a public parking site","tasks":[{"name":"PubFreeLotEstimation","operator":"publicsite","input_streams":[{"selected_type":"PublicSite","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-37,"y":-108,"type":"Task","module":null,"values":{"name":"PubFreeLotEstimation","operator":"publicsite","outputs":["Out"]}},{"id":2,"x":-340,"y":-128,"type":"EntityStream","module":null,"values":{"selectedtype":"PublicSite","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]} 
+},{
+    topology: {"name":"ArrivalTimeEstimation","description":"to estimate when the car will arrive at the destination","tasks":[{"name":"CalculateArrivalTime","operator":"connectedcar","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-106,"y":-93,"type":"Task","module":null,"values":{"name":"CalculateArrivalTime","operator":"connectedcar","outputs":["Out"]}},{"id":2,"x":-420,"y":-145,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]} 
+},{
+    topology: {"name":"ParkingLotRecommendation","description":"to recommend where to park around the destination","tasks":[{"name":"WhereToParking","operator":"recommender","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-14,"y":-46,"type":"Task","module":null,"values":{"name":"WhereToParking","operator":"recommender","outputs":["Out"]}},{"id":2,"x":-379,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}}]} 
 }
 ];
 
@@ -262,7 +274,7 @@ function findInputStream(scene, blockid)
                         
                         inputstream.selected_type = findInputType(scene,  block.id)          
                         
-                        if (block.values['selectedattributes'].toUpperCase() == 'ALL') {
+                        if (block.values['selectedattributes'].length == 1 && block.values['selectedattributes'][0].toUpperCase() == 'ALL') {
                             inputstream.selected_attributes = [];
                         } else {
                             inputstream.selected_attributes = block.values['selectedattributes'];                            
@@ -277,7 +289,7 @@ function findInputStream(scene, blockid)
                                                 
                         inputstream.selected_type = block.values['selectedtype'];            
                         
-                        if (block.values['selectedattributes'].toUpperCase() == 'ALL') {
+                        if (block.values['selectedattributes'].length == 1 && block.values['selectedattributes'][0].toUpperCase() == 'ALL') {
                             inputstream.selected_attributes = [];
                         } else {
                             inputstream.selected_attributes = block.values['selectedattributes'];                            
