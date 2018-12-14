@@ -11,7 +11,7 @@ exports.handler = function(contextEntity, publish, query, subscribe)
            type: 'Result',
            isPattern: false
     };	    	
-    updateEntity.attributes := contextEntity.attributes;	      
+    updateEntity.attributes = contextEntity.attributes;	      
    	
     publish(updateEntity);	
 };
