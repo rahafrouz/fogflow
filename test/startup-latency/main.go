@@ -45,7 +45,7 @@ func main() {
 	unsubscribe(&config, sid)
 
 	// delete the input entities
-	for i := 1; i < *num; i++ {
+	for i := 1; i <= *num; i++ {
 		deleteEntity(&config, i)
 	}
 
