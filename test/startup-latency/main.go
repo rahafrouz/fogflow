@@ -28,8 +28,9 @@ func main() {
 
 	time.Sleep(10 * time.Second)
 
+	// create the input entities
 	for i := 1; i < *num; i++ {
-		update(&config, i)
+		createEntity(&config, i)
 
 		if i%5 == 0 {
 			time.Sleep(2 * time.Second)
@@ -42,6 +43,11 @@ func main() {
 	<-c
 
 	unsubscribe(&config, sid)
+
+	// delete the input entities
+	for i := 1; i < *num; i++ {
+		deleteEntity(&config, i)
+	}
 
 	time.Sleep(5 * time.Second)
 }
@@ -111,7 +117,7 @@ func unsubscribe(config *Config, sid string) {
 	}
 }
 
-func update(config *Config, i int) {
+func createEntity(config *Config, i int) {
 	ctxObj := ContextObject{}
 
 	ctxObj.Entity.ID = "Car." + strconv.Itoa(i)
@@ -130,5 +136,18 @@ func update(config *Config, i int) {
 		fmt.Println(err)
 	}
 
-	INFO.Println("send update ", i)
+	INFO.Println("create entity ", i)
+}
+
+func deleteEntity(config *Config, i int) {
+	eid := EntityId{}
+	eid.ID = "Car." + strconv.Itoa(i)
+
+	client := NGSI10Client{IoTBrokerURL: config.UpdateBrokerURL}
+	err := client.DeleteContext(&eid)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	INFO.Println("delete entity ", i)
 }
