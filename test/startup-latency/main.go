@@ -29,12 +29,12 @@ func main() {
 	time.Sleep(10 * time.Second)
 
 	// create the input entities
-	for i := 1; i < *num; i++ {
+	for i := 1; i <= *num; i++ {
 		createEntity(&config, i)
 
-		if i%5 == 0 {
-			time.Sleep(2 * time.Second)
-		}
+		//if i%5 == 0 {
+		time.Sleep(1 * time.Second)
+		//}
 	}
 
 	c := make(chan os.Signal, 1)
@@ -60,7 +60,7 @@ func startAgent(config *Config) {
 
 func HandleNotifyContext(notifyCtxReq *NotifyContextRequest) {
 	INFO.Println("===========RECEIVE NOTIFY CONTEXT=========")
-	INFO.Printf("<< %+v >>\r\n", notifyCtxReq)
+	INFO.Println(notifyCtxReq)
 
 	for _, v := range notifyCtxReq.ContextResponses {
 		ctxObj := CtxElement2Object(&(v.ContextElement))
@@ -91,7 +91,7 @@ func subscribe(config *Config) string {
 
 	newEntity := EntityId{}
 	newEntity.Type = "Result"
-	newEntity.IsPattern = false
+	newEntity.IsPattern = true
 	subscription.Entities = make([]EntityId, 0)
 	subscription.Entities = append(subscription.Entities, newEntity)
 
