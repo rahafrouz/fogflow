@@ -46,6 +46,9 @@ var myToplogyExamples = [
 },{
     topology: {"name":"ParkingLotRecommendation","description":"to recommend where to park around the destination","tasks":[{"name":"WhereToParking","operator":"recommender","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
     designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-14,"y":-46,"type":"Task","module":null,"values":{"name":"WhereToParking","operator":"recommender","outputs":["Out"]}},{"id":2,"x":-379,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}}]} 
+},{
+    topology: {"name":"test","description":"for test","tasks":[{"name":"Simple","operator":"dummy","input_streams":[{"selected_type":"Hello","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-58,"y":-89,"type":"Task","module":null,"values":{"name":"Simple","operator":"dummy","outputs":["Out"]}},{"id":2,"x":-339,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"Hello","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}  
 }
 ];
 

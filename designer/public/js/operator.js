@@ -301,6 +301,10 @@ function initOperatorList()
         name: "speaker",
         description: "",
         parameters:[]
+    },{
+        name: "dummy",
+        description: "",
+        parameters:[]
     }
     ];
     
@@ -417,6 +421,13 @@ function initDockerImageList()
         hwType: "X86",
         osType: "Linux",
         operatorName: "speaker",
+        prefetched: false
+    },{
+        name: "fogflow/dummy",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "dummy",
         prefetched: false
     }
     ];
