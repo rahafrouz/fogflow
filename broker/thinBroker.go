@@ -412,11 +412,11 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 	// perform the update action accordingly
 	switch updateCtxReq.UpdateAction {
 	case "UPDATE":
+		INFO.Println("===========delete========")
+		INFO.Println(updateCtxReq)
+
 		for _, ctxElem := range updateCtxReq.ContextElements {
 			geoscope := ctxElem.GetScope()
-
-			INFO.Println("GEOSCOPE: ")
-			INFO.Println(geoscope)
 
 			if geoscope.Type == "local" {
 				tb.UpdateContext2LocalSite(&ctxElem)
@@ -439,8 +439,8 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 		}
 
 	case "DELETE":
-		fmt.Println("===========delete========")
-		fmt.Printf("%+v\r\n", updateCtxReq)
+		INFO.Println("===========delete========")
+		INFO.Println(updateCtxReq)
 
 		for _, ctxElem := range updateCtxReq.ContextElements {
 			element := tb.getEntity(ctxElem.Entity.ID)
