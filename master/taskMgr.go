@@ -32,8 +32,8 @@ type Condition struct {
 }
 
 type TaskConfig struct {
-	TaskID string
-
+	TaskID   string
+	Name     string
 	Operator string
 
 	WorkerID string
@@ -352,6 +352,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 
 			task.TaskID = hashID
 			task.Operator = flow.Intent.TaskObject.Operator
+			task.Name = flow.Intent.TaskObject.Name
 
 			task.Status = "scheduled"
 
@@ -371,6 +372,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 
 			taskInstance.ServiceName = flow.Intent.ServiceName
 			taskInstance.OperatorName = task.Operator
+			taskInstance.TaskName = task.Name
 
 			taskInstance.IsExclusive = flow.Intent.Priority.IsExclusive
 			taskInstance.PriorityLevel = flow.Intent.Priority.Level
