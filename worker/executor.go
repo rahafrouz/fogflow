@@ -92,23 +92,23 @@ func (e *Executor) GetNumOfTasks() int {
 func (e *Executor) ListImages() {
 	imgs, _ := e.client.ListImages(docker.ListImagesOptions{All: false})
 	for _, img := range imgs {
-		fmt.Println("ID: ", img.ID)
-		fmt.Println("RepoTags: ", img.RepoTags)
-		fmt.Println("Created: ", img.Created)
-		fmt.Println("Size: ", img.Size)
-		fmt.Println("VirtualSize: ", img.VirtualSize)
-		fmt.Println("ParentId: ", img.ParentID)
+		INFO.Println("ID: ", img.ID)
+		INFO.Println("RepoTags: ", img.RepoTags)
+		INFO.Println("Created: ", img.Created)
+		INFO.Println("Size: ", img.Size)
+		INFO.Println("VirtualSize: ", img.VirtualSize)
+		INFO.Println("ParentId: ", img.ParentID)
 	}
 }
 
 func (e *Executor) InspectImage(dockerImage string) {
 	img, err := e.client.InspectImage(dockerImage)
 	if err != nil {
-		fmt.Printf("failed to access this image %+v", err)
+		ERROR.Printf("failed to access this image %+v", err)
 		return
 	}
 
-	fmt.Printf("cfg : %+v", img.Config)
+	DEBUG.Printf("cfg : %+v", img.Config)
 }
 
 func (e *Executor) PullImage(dockerImage string, tag string) (string, error) {
@@ -122,14 +122,14 @@ func (e *Executor) PullImage(dockerImage string, tag string) (string, error) {
 		dockerImage = dockerImage
 	}
 
-	fmt.Printf("options : %+v\r\n", auth)
+	DEBUG.Printf("options : %+v\r\n", auth)
 
 	opts := docker.PullImageOptions{
 		Repository: dockerImage,
 		Tag:        tag,
 	}
 
-	fmt.Printf("options : %+v\r\n", opts)
+	DEBUG.Printf("options : %+v\r\n", opts)
 
 	err := e.client.PullImage(opts, auth)
 	if err != nil {
@@ -160,7 +160,7 @@ func (e *Executor) PullImage(dockerImage string, tag string) (string, error) {
 func (e *Executor) ListContainers() {
 	containers, _ := e.client.ListContainers(docker.ListContainersOptions{All: true})
 	for _, container := range containers {
-		fmt.Println("Name: ", container.Names)
+		DEBUG.Println("Name: ", container.Names)
 	}
 }
 
@@ -366,11 +366,11 @@ func (e *Executor) LaunchTask(task *ScheduledTaskInstance) bool {
 	for _, inputStream := range task.Inputs {
 		subID, err := e.subscribeInputStream(freePort, &inputStream)
 		if err == nil {
-			fmt.Println("===========subID = ", subID)
+			DEBUG.Println("===========subID = ", subID)
 			taskCtx.Subscriptions = append(taskCtx.Subscriptions, subID)
 			taskCtx.EntityID2SubID[inputStream.ID] = subID
 		} else {
-			fmt.Println(err)
+			ERROR.Println(err)
 		}
 	}
 
@@ -440,7 +440,7 @@ func (e *Executor) registerTask(task *ScheduledTaskInstance, portNum string, con
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }
 
@@ -457,7 +457,7 @@ func (e *Executor) updateTask(taskID string, status string) {
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }
 
@@ -470,7 +470,7 @@ func (e *Executor) deregisterTask(taskID string) {
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.DeleteContext(&entity)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }
 
@@ -495,12 +495,12 @@ func (e *Executor) subscribeInputStream(agentPort string, inputStream *InputStre
 
 	subscription.Reference = "http://" + e.workerCfg.InternalIP + ":" + agentPort
 
-	fmt.Printf(" =========== issue the following subscription =========== %+v\r\n", subscription)
+	DEBUG.Printf(" =========== issue the following subscription =========== %+v\r\n", subscription)
 
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	sid, err := client.SubscribeContext(&subscription, true)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return "", err
 	} else {
 		return sid, nil
@@ -511,7 +511,7 @@ func (e *Executor) unsubscribeInputStream(sid string) error {
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.UnsubscribeContext(sid)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return err
 	} else {
 		return nil
@@ -528,7 +528,7 @@ func (e *Executor) createOuputStream(eID string, eType string) error {
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.UpdateContextObject(&ctxObj)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return err
 	} else {
 		return nil
@@ -539,7 +539,7 @@ func (e *Executor) deleteOuputStream(eid *EntityId) error {
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.DeleteContext(eid)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return err
 	} else {
 		return nil
@@ -656,7 +656,7 @@ func (e *Executor) onAddInput(flow *FlowInfo) {
 
 	subID, err := e.subscribeInputStream(taskCtx.ListeningPort, &flow.InputStream)
 	if err == nil {
-		fmt.Println("===========subscribe new input = ", flow, " , subID = ", subID)
+		DEBUG.Println("===========subscribe new input = ", flow, " , subID = ", subID)
 		taskCtx.Subscriptions = append(taskCtx.Subscriptions, subID)
 		taskCtx.EntityID2SubID[flow.InputStream.ID] = subID
 	} else {

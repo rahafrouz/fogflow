@@ -91,7 +91,6 @@ func (nc *NGSI10Client) sendUpdateContext(elem *ContextElement, internal bool) e
 	defer resp.Body.Close()
 
 	text, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Println(string(text))
 
 	updateCtxResp := UpdateContextResponse{}
 	err = json.Unmarshal(text, &updateCtxResp)
@@ -269,7 +268,6 @@ func (nc *NGSI10Client) InternalQueryContext(query *QueryContextRequest) ([]Cont
 	defer resp.Body.Close()
 
 	text, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Println(string(text))
 
 	queryCtxResp := QueryContextResponse{}
 	err = json.Unmarshal(text, &queryCtxResp)
@@ -513,7 +511,6 @@ func (nc *NGSI9Client) SubscribeContextAvailability(sub *SubscribeContextAvailab
 	defer resp.Body.Close()
 
 	text, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(text))
 
 	subscribeCtxAvailResp := SubscribeContextAvailabilityResponse{}
 	err = json.Unmarshal(text, &subscribeCtxAvailResp)
@@ -538,9 +535,6 @@ func (nc *NGSI9Client) UnsubscribeContextAvailability(sid string) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("unsubscribe the context availability from IoT Discovery")
-	fmt.Println(string(body))
 
 	req, err := http.NewRequest("POST", nc.IoTDiscoveryURL+"/unsubscribeContextAvailability", bytes.NewBuffer(body))
 	req.Header.Add("Content-Type", "application/json")

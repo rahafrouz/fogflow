@@ -28,7 +28,7 @@ func main() {
 	config, err := LoadConfig(*configurationFile)
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
-		fmt.Println("please specify the configuration file, for example, \r\n\t./worker -f config.json")
+		INFO.Println("please specify the configuration file, for example, \r\n\t./worker -f config.json")
 		os.Exit(-1)
 	}
 

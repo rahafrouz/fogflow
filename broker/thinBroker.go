@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -151,10 +150,10 @@ func (tb *ThinBroker) deregisterMyself() {
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	err := client.UnregisterEntity(tb.myEntityId)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 
-	fmt.Println("deregister myself to IoT Discovery: ", tb.myEntityId)
+	INFO.Println("deregister myself to IoT Discovery: ", tb.myEntityId)
 }
 
 func (tb *ThinBroker) getEntities() []ContextElement {
@@ -207,7 +206,7 @@ func (tb *ThinBroker) deleteEntity(eid string) error {
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	err := client.UnregisterEntity(eid)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return err
 	}
 
@@ -340,10 +339,6 @@ func (tb *ThinBroker) discoveryEntities(ids []EntityId, attributes []string, res
 	discoverCtxAvailabilityReq.Attributes = attributes
 	discoverCtxAvailabilityReq.Restriction = restriction
 
-	fmt.Println("send discovery : ")
-	fmt.Println(tb.IoTDiscoveryURL)
-	fmt.Printf("%+v\n", discoverCtxAvailabilityReq)
-
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	registrationList, _ := client.DiscoverContextAvailability(&discoverCtxAvailabilityReq)
 
@@ -471,9 +466,9 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 }
 
 func (tb *ThinBroker) querySiteListByScope(geoscope OperationScope) ([]SiteInfo, error) {
-	fmt.Println("query sites by geoscope")
-	fmt.Println(tb.IoTDiscoveryURL)
-	fmt.Println(geoscope)
+	DEBUG.Println("query sites by geoscope")
+	DEBUG.Println(tb.IoTDiscoveryURL)
+	DEBUG.Println(geoscope)
 
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	return client.QuerySiteList(geoscope)
@@ -493,7 +488,6 @@ func (tb *ThinBroker) UpdateContext2LocalSite(ctxElem *ContextElement) {
 
 	// register the entity if there is any changes on attribute list, domain metadata
 	if hasUpdatedMetadata == true {
-		//fmt.Println("===========has updated metadata============")
 		tb.registerContextElement(ctxElem)
 	}
 }
@@ -599,7 +593,7 @@ func (tb *ThinBroker) sendReliableNotify(elements []ContextElement, sid string) 
 
 	//check if there is any element that has not been received
 	if subscription.Subscriber.RequireReliability == true && len(subscription.Subscriber.NotifyCache) > 0 {
-		fmt.Println("resend notify:  ", len(subscription.Subscriber.NotifyCache))
+		DEBUG.Println("resend notify:  ", len(subscription.Subscriber.NotifyCache))
 
 		for _, pCtxElem := range subscription.Subscriber.NotifyCache {
 			elements = append(elements, *pCtxElem)
@@ -614,7 +608,7 @@ func (tb *ThinBroker) sendReliableNotify(elements []ContextElement, sid string) 
 
 	err := postNotifyContext(elements, sid, subscriberURL, IsOrionBroker)
 	if err != nil {
-		fmt.Println("NOTIFY is not received by the subscriber, ", subscriberURL)
+		INFO.Println("NOTIFY is not received by the subscriber, ", subscriberURL)
 
 		tb.subscriptions_lock.Lock()
 		if subscription, exist := tb.subscriptions[sid]; exist {
@@ -707,10 +701,9 @@ func (tb *ThinBroker) SubscribeContext(w rest.ResponseWriter, r *rest.Request) {
 
 	// take actions
 	if subReq.Subscriber.IsInternal == true {
-		fmt.Println("internal subscription coming from another broker")
+		INFO.Println("internal subscription coming from another broker")
 
 		for _, entity := range subReq.Entities {
-			fmt.Println(entity.ID, subID)
 			tb.e2sub_lock.Lock()
 			tb.entityId2Subcriptions[entity.ID] = append(tb.entityId2Subcriptions[entity.ID], subID)
 			tb.e2sub_lock.Unlock()
@@ -766,8 +759,6 @@ func (tb *ThinBroker) UnsubscribeContextAvailability(sid string) error {
 }
 
 func (tb *ThinBroker) UnsubscribeContext(w rest.ResponseWriter, r *rest.Request) {
-	fmt.Println("unsubscribe========")
-
 	unsubscribeCtxReq := UnsubscribeContextRequest{}
 	err := r.DecodeJsonPayload(&unsubscribeCtxReq)
 	if err != nil {
@@ -808,7 +799,7 @@ func (tb *ThinBroker) NotifyContextAvailability(w rest.ResponseWriter, r *rest.R
 	notifyContextAvailabilityReq := NotifyContextAvailabilityRequest{}
 	err := r.DecodeJsonPayload(&notifyContextAvailabilityReq)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -825,7 +816,7 @@ func (tb *ThinBroker) NotifyContextAvailability(w rest.ResponseWriter, r *rest.R
 	tb.subLinks_lock.Lock()
 	mainSubID, exist := tb.availabilitySub2MainSub[subID]
 	if exist == false {
-		fmt.Println("put it into the tempCache and handle it later")
+		DEBUG.Println("put it into the tempCache and handle it later")
 		tb.tmpNGSI9NotifyCache[subID] = &notifyContextAvailabilityReq
 	}
 	tb.subLinks_lock.Unlock()
@@ -900,7 +891,7 @@ func (tb *ThinBroker) handleNGSI9Notify(mainSubID string, notifyContextAvailabil
 			if action == "CREATE" || action == "UPDATE" {
 				sid, err := subscribeContextProvider(&newSubscription, registration.ProvidingApplication)
 				if err == nil {
-					fmt.Println("issue a new subscription ", sid)
+					INFO.Println("issue a new subscription ", sid)
 
 					tb.subscriptions_lock.Lock()
 					tb.subscriptions[sid] = &newSubscription
@@ -934,8 +925,6 @@ func (tb *ThinBroker) registerContextElement(element *ContextElement) {
 	registration.Metadata = element.Metadata
 	registration.ProvidingApplication = tb.MyURL
 
-	//fmt.Println("update the availability information of entity ", element.Entity.ID)
-
 	// create or update registered context
 	registerCtxReq := RegisterContextRequest{}
 	registerCtxReq.RegistrationId = ""
@@ -945,7 +934,7 @@ func (tb *ThinBroker) registerContextElement(element *ContextElement) {
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	_, err := client.RegisterContext(&registerCtxReq)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }
 
@@ -973,6 +962,6 @@ func (tb *ThinBroker) deregisterContextElements(ContextElements []ContextElement
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	_, err := client.RegisterContext(&registerCtxReq)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }

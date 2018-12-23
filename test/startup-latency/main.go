@@ -38,6 +38,8 @@ func main() {
 		StartTime = time.Now()
 
 		time.Sleep(5 * time.Second)
+
+		StartTime = time.Now()
 		deleteEntity(&config, i)
 	}
 
@@ -71,7 +73,13 @@ func HandleNotifyContext(notifyCtxReq *NotifyContextRequest) {
 		//INFO.Println(ctxObj)
 
 		var latency = (time.Now().UnixNano() - StartTime.UnixNano()) / int64(time.Millisecond)
-		fmt.Printf("%s latency: %d \r\n", ctxObj.Entity.ID, latency)
+		if ctxObj.IsEmpty() == true {
+			// terminate task
+			fmt.Printf("TERMINATE TASK: %s latency: %d \r\n", ctxObj.Entity.ID, latency)
+		} else {
+			// launch task
+			fmt.Printf("LAUNCH TASK: %s latency: %d \r\n", ctxObj.Entity.ID, latency)
+		}
 
 		//currentTime := time.Now().UnixNano() / 1000000
 		//latency := currentTime - ctxObj.Attributes["time"].Value.(int64)

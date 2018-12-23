@@ -79,7 +79,6 @@ func (communicator *Communicator) StartConsuming(consumerTag string, taskProcess
 	}
 
 	if err != nil {
-		fmt.Printf("error to communicate with rabbitmq %+v\r\n", err)
 		communicator.retryFunc()
 		return communicator.retry, err // retry true
 	}

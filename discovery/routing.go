@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -140,7 +139,7 @@ func (r *Routing) Init(rootDiscovery string, mySite SiteInfo) {
 func (r *Routing) fetchRoutingTable(rootSiteIP string) error {
 	resp, err := http.Get("http://" + rootSiteIP + "/ngsi9/sitelist")
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return err
 	}
 	defer resp.Body.Close()

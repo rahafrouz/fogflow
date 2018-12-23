@@ -84,7 +84,7 @@ func (fd *FastDiscovery) forwardRegistrationCtxAvailability(discoveryURL string,
 	client := NGSI9Client{IoTDiscoveryURL: requestURL}
 	_, err := client.RegisterContext(registrationReq)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }
 
@@ -285,7 +285,6 @@ func (fd *FastDiscovery) DiscoverContextAvailability(w rest.ResponseWriter, r *r
 }
 
 func (fd *FastDiscovery) handleQueryCtxAvailability(req *DiscoverContextAvailabilityRequest) []ContextRegistrationResponse {
-	//fmt.Println("************** query availability ****************")
 	entityMap := fd.repository.queryEntities(req.Entities, req.Attributes, req.Restriction)
 
 	// prepare the response
@@ -496,12 +495,9 @@ func (fd *FastDiscovery) sendNotify(subID string, subscriberURL string, entityMa
 
 	body, err := json.Marshal(notifyReq)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return
 	}
-
-	//fmt.Println(string(body))
-	//fmt.Println("send to subscriber at ", subscriberURL)
 
 	req, err := http.NewRequest("POST", subscriberURL, bytes.NewBuffer(body))
 	req.Header.Add("Content-Type", "application/json")
@@ -511,7 +507,7 @@ func (fd *FastDiscovery) sendNotify(subID string, subscriberURL string, entityMa
 	resp, err2 := client.Do(req)
 	defer resp.Body.Close()
 	if err2 != nil {
-		fmt.Println(err2)
+		ERROR.Println(err2)
 		return
 	}
 
@@ -520,12 +516,12 @@ func (fd *FastDiscovery) sendNotify(subID string, subscriberURL string, entityMa
 	notifyCtxAvailResp := NotifyContextAvailabilityResponse{}
 	err = json.Unmarshal(text, &notifyCtxAvailResp)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 		return
 	}
 
 	if notifyCtxAvailResp.ResponseCode.Code != 200 {
-		fmt.Println(notifyCtxAvailResp.ResponseCode.ReasonPhrase)
+		ERROR.Println(notifyCtxAvailResp.ResponseCode.ReasonPhrase)
 	}
 }
 
@@ -538,8 +534,6 @@ func (fd *FastDiscovery) SiteUnsubscribeContextAvailability(w rest.ResponseWrite
 	}
 
 	subID := unsubscribeCtxAvailabilityReq.SubscriptionId
-
-	fmt.Println("unsubscribe context availability, ", subID)
 
 	// remove the subscription
 	fd.subscriptions_lock.Lock()
@@ -564,8 +558,6 @@ func (fd *FastDiscovery) UnsubscribeContextAvailability(w rest.ResponseWriter, r
 	}
 
 	subID := unsubscribeCtxAvailabilityReq.SubscriptionId
-
-	fmt.Println("unsubscribe context availability, ", subID)
 
 	var interSiteSubList []InterSiteSubscription
 

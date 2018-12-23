@@ -23,7 +23,7 @@ func main() {
 	config, err := LoadConfig(*cfgFile)
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
-		fmt.Println("please specify the configuration file, for example, \r\n\t./broker -f config.json")
+		ERROR.Println("please specify the configuration file, for example, \r\n\t./broker -f config.json")
 		os.Exit(-1)
 	}
 

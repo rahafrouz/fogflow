@@ -349,7 +349,7 @@ func (er *EntityRepository) deleteEntity(eid string) {
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
 
-	fmt.Println("==delete entity ", eid)
+	DEBUG.Println("==delete entity ", eid)
 
 	// find out the associated entity
 	queryStatement := fmt.Sprintf("SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = '%s'", eid)
@@ -367,7 +367,7 @@ func (er *EntityRepository) deleteEntity(eid string) {
 		rows.Scan(&entityID, &entityType, &providerURL)
 
 		if entityType == "IoTBroker" {
-			fmt.Println("IoT Broker left as a context provider")
+			DEBUG.Println("IoT Broker left as a context provider")
 			er.ProviderLeft(providerURL)
 		}
 
@@ -399,7 +399,7 @@ func (er *EntityRepository) ProviderLeft(providerURL string) {
 	// find out all entities associated with this broker
 	queryStatement := fmt.Sprintf("SELECT entity_tab.eid FROM entity_tab WHERE providerurl = '%s'", providerURL)
 
-	fmt.Println(queryStatement)
+	DEBUG.Println(queryStatement)
 
 	// perform the query
 	rows, err := er.query(queryStatement)
@@ -529,7 +529,6 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 
 			switch mtype {
 			case "point":
-				fmt.Println(box)
 				var latitude, longitude float64
 				_, err := fmt.Scanf(box, "POINT(%f %f)", &longitude, &latitude)
 				if err == nil {
@@ -543,7 +542,6 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 					metadata.Value = box
 				}
 
-				fmt.Println("point")
 			}
 
 			metadata.Value = box
@@ -577,8 +575,6 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 				metadata.Type = "string"
 				metadata.Value = fmt.Sprintf("%s, %f", center, radius)
 			}
-
-			fmt.Println("circle")
 
 			metadata.Value = circle
 

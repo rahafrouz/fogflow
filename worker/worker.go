@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"runtime"
 	"strconv"
 	"time"
@@ -95,7 +94,7 @@ func (w *Worker) Start(config *Config) bool {
 		for {
 			retry, err := w.communicator.StartConsuming(w.id, w)
 			if retry {
-				fmt.Printf("Going to retry launching the edge node. Error: %v", err)
+				INFO.Printf("Going to retry launching the edge node. Error: %v", err)
 			} else {
 				break
 			}
@@ -119,7 +118,7 @@ func (w *Worker) Quit() {
 	w.communicator.StopConsuming()
 	w.ticker.Stop()
 	w.executor.Shutdown()
-	fmt.Println("stop consuming the messages")
+	INFO.Println("stop consuming the messages")
 }
 
 func (w *Worker) publishMyself() error {
@@ -154,7 +153,7 @@ func (w *Worker) unpublishMyself() {
 	client := NGSI10Client{IoTBrokerURL: w.selectedBrokerURL}
 	err := client.DeleteContext(&entity)
 	if err != nil {
-		fmt.Println(err)
+		ERROR.Println(err)
 	}
 }
 
