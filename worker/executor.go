@@ -272,6 +272,21 @@ func (e *Executor) LaunchTask(task *ScheduledTaskInstance) bool {
 	dockerImage := task.DockerImage
 
 	INFO.Println("to execute Task ", task.ID, " to perform Operation ", dockerImage)
+	if e.workerCfg.Worker.StartActualTask == false {
+		// just for the performance evaluation of Topology Master
+		taskCtx := taskContext{}
+
+		e.taskMap_lock.Lock()
+		e.taskInstances[task.ID] = &taskCtx
+		e.taskMap_lock.Unlock()
+
+		INFO.Printf("register this task")
+
+		// register this new task entity to IoT Broker
+		e.registerTask(task, "000", "000")
+
+		return true
+	}
 
 	if e.workerCfg.Worker.Registry.IsConfigured() == true {
 		// to fetch the docker image
@@ -503,6 +518,23 @@ func (e *Executor) unsubscribeInputStream(sid string) error {
 	}
 }
 
+func (e *Executor) createOuputStream(eID string, eType string) error {
+	ctxObj := ContextObject{}
+
+	ctxObj.Entity.ID = eID
+	ctxObj.Entity.Type = eType
+	ctxObj.Entity.IsPattern = false
+
+	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
+	err := client.UpdateContextObject(&ctxObj)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	} else {
+		return nil
+	}
+}
+
 func (e *Executor) deleteOuputStream(eid *EntityId) error {
 	client := NGSI10Client{IoTBrokerURL: e.brokerURL}
 	err := client.DeleteContext(eid)
@@ -538,6 +570,22 @@ func (e *Executor) ResumeTask(taskID string) {
 
 func (e *Executor) TerminateTask(taskID string, paused bool) {
 	INFO.Println("================== terminate task ID ============ ", taskID)
+
+	if e.workerCfg.Worker.StartActualTask == false {
+		// just for the performance evaluation of Topology Master
+		e.taskMap_lock.Lock()
+
+		if _, ok := e.taskInstances[taskID]; ok == true {
+			delete(e.taskInstances, taskID)
+		}
+
+		e.taskMap_lock.Unlock()
+
+		INFO.Printf("deregister this task")
+		go e.deregisterTask(taskID)
+
+		return
+	}
 
 	e.taskMap_lock.Lock()
 	if _, ok := e.taskInstances[taskID]; ok == false {

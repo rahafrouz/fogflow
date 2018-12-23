@@ -13,6 +13,7 @@ import (
 )
 
 var StartTime = time.Now()
+var total_num = int64(0)
 
 func main() {
 	configurationFile := flag.String("f", "config.json", "A configuration file")
@@ -35,10 +36,6 @@ func main() {
 	// create the input entities
 	for i := 1; i <= *num; i++ {
 		createEntity(&config, i)
-		StartTime = time.Now()
-
-		time.Sleep(5 * time.Second)
-		deleteEntity(&config, i)
 	}
 
 	c := make(chan os.Signal, 1)
@@ -70,8 +67,14 @@ func HandleNotifyContext(notifyCtxReq *NotifyContextRequest) {
 		ctxObj := CtxElement2Object(&(v.ContextElement))
 		//INFO.Println(ctxObj)
 
-		var latency = (time.Now().UnixNano() - StartTime.UnixNano()) / int64(time.Millisecond)
-		fmt.Printf("%s latency: %d \r\n", ctxObj.Entity.ID, latency)
+		if ctxObj.Entity.Type == "Task" {
+			total_num = total_num + 1
+		}
+
+		var delta = (time.Now().UnixNano() - StartTime.UnixNano()) / 1000000
+		var throughput = total_num * 1000 / delta
+
+		fmt.Printf("total %d, delta %d, throughput: %d \r\n", total_num, delta, throughput)
 
 		//currentTime := time.Now().UnixNano() / 1000000
 		//latency := currentTime - ctxObj.Attributes["time"].Value.(int64)
