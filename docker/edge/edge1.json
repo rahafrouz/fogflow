@@ -14,7 +14,7 @@
         "debug": "stdout"
     },
     "broker": {
-        "port": 8080
+        "port": 8081
     },
     "discovery": {
         "port": 8090

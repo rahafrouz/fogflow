@@ -25,9 +25,9 @@ var client = new NGSI10Client(config.brokerURL);
 
 var myFogFunctionExamples = [
 {
-    topology: {"name":"anomaly-detection","description":"detect anomaly events in shops","tasks":[{"name":"Counting","operator":"counter","input_streams":[{"selected_type":"Anomaly","selected_attributes":[],"groupby":"ALL","scoped":true}],"output_streams":[{"entity_type":"Stat"}]},{"name":"Detector","operator":"anomaly","input_streams":[{"selected_type":"PowerPanel","selected_attributes":[],"groupby":"EntityID","scoped":true},{"selected_type":"Rule","selected_attributes":[],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"Anomaly"}]}]},
+    topology: {},
     intent: {},
-    designboard: {"edges":[{"id":2,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]},{"id":3,"block1":2,"connector1":["outputs","output",0],"block2":3,"connector2":["in","input"]},{"id":4,"block1":4,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]},{"id":5,"block1":5,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":202,"y":-146,"type":"Task","module":null,"values":{"name":"Counting","operator":"counter","outputs":["Stat"]}},{"id":2,"x":-194,"y":-134,"type":"Task","module":null,"values":{"name":"Detector","operator":"anomaly","outputs":["Anomaly"]}},{"id":3,"x":4,"y":-18,"type":"Shuffle","module":null,"values":{"selectedattributes":["all"],"groupby":"ALL"}},{"id":4,"x":-447,"y":-179,"type":"EntityStream","module":null,"values":{"selectedtype":"PowerPanel","selectedattributes":["all"],"groupby":"EntityID","scoped":true}},{"id":5,"x":-438,"y":-5,"type":"EntityStream","module":null,"values":{"selectedtype":"Rule","selectedattributes":["all"],"groupby":"ALL","scoped":false}}]}
+    designboard: {}
 }
 ];
 
@@ -65,9 +65,9 @@ function selectMenuItem(name) {
 
 function initFogFunctionExamples() 
 {
-    for(var i=0; i<myToplogyExamples.length; i++) {
-        var example = myToplogyExamples[i];
-        submitTopology(example.topology, example.designboard);
+    for(var i=0; i<myFogFunctionExamples.length; i++) {
+        var fogfunction = myFogFunctionExamples[i];        
+        submitFogFunction(fogfunction);
     }
 }
 
@@ -141,33 +141,18 @@ function showFogFunctionEditor()
            
 }
 
-function openTopologyEditor(topologyEntity)
-{		
-    if(topologyEntity.attributes.designboard){
+function openFogFunctionEditor(fogfunction)
+{
+    var topologyEntity = fogfunction.attributes.topology.value;
+    
+    if(topologyEntity &&  topologyEntity.attributes.designboard){
         CurrentScene = topologyEntity.attributes.designboard.value;          
-        showTopologyEditor(); 
+        showFogFunctionEditor(); 
         
-        var topology = topologyEntity.attributes.template.value;
-        
+        var topology = topologyEntity.attributes.template.value;        
         $('#serviceName').val(topology.name);
         $('#serviceDescription').val(topology.description);
     }
-}
-
-function deleteTopology(topologyEntity)
-{
-    var entityid = {
-        id : topologyEntity.entityId.id, 
-        type: 'Topology',
-        isPattern: false
-    };	    
-    
-    client.deleteContext(entityid).then( function(data) {
-        console.log(data);
-		updateTopologyList();		
-    }).catch( function(error) {
-        console.log('failed to delete a service topology');
-    });  	
 }
 
 
@@ -208,7 +193,6 @@ function boardScene2Topology(scene)
         isPattern: false
     };    
     topologyCtxObj.attributes = {};   
-    topologyCtxObj.attributes.status = {type: 'string', value: 'enabled'};
     topologyCtxObj.attributes.designboard = {type: 'object', value: scene};    
     topologyCtxObj.attributes.template = {type: 'object', value: topology};  
 
@@ -246,24 +230,30 @@ function boardScene2Topology(scene)
     };    
     functionCtxObj.attributes = {};   
     functionCtxObj.attributes.name = {type: 'string', value: topologyName};    
-    functionCtxObj.attributes.topology = {type: 'object', value: topology};    
-    functionCtxObj.attributes.intent = {type: 'object', value: intent};  
-    functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};        
-    client.updateContext(functionCtxObj).then( function(data1) {
+    functionCtxObj.attributes.topology = {type: 'object', value: topologyCtxObj};    
+    functionCtxObj.attributes.intent = {type: 'object', value: intentCtxObj};  
+    functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};    
+    
+    submitFogFunction(functionCtxObj).then(showFogFunctions);
+}
+
+function submitFogFunction(functionCtxObj)
+{
+    var  topologyCtxObj = functionCtxObj.attributes.topology.value;
+    var  intentCtxObj = functionCtxObj.attributes.intent.value;       
+    
+    return client.updateContext(functionCtxObj).then( function(data1) {
         console.log(data1);                 
     }).then( function(data2) {
         console.log(data2);                 
         client.updateContext(topologyCtxObj);        
     }).then( function(data3) {
         console.log(data3);                 
-        client.updateContext(intentCtxObj);                
-        
-        showFogFunctions();
+        client.updateContext(intentCtxObj);                        
     }).catch( function(error) {
         console.log('failed to record the created fog function');
-    });              
+    });                  
 }
-
 
 function generateTaskList(scene)
 {    
@@ -373,6 +363,7 @@ function findInputType(scene, blockId)
 
 function showFogFunctions() 
 {    
+    console.log("show the list of fog functions");
     $('#info').html('list of all registered fog functions');
     
     var html = '<div style="margin-bottom: 10px;"><button id="registerFunction" type="button" class="btn btn-primary">register</button></div>';
@@ -424,11 +415,8 @@ function displayFunctionList(fogFunctions)
 		html += '<br><button id="editor-' + fogfunction.entityId.id + '" type="button" class="btn btn-default">editor</button>';
 		html += '<br><button id="delete-' + fogfunction.entityId.id + '" type="button" class="btn btn-default">delete</button>';
 		html += '</td>';        
-               
-        var topology = fogfunction.attributes.topology.value;
-        
-		html += '<td>' + topology.name + '</td>';                       
-                  
+                       
+		html += '<td>' + JSON.stringify(fogfunction.attributes.name) + '</td>';                                  
 		html += '<td>' + JSON.stringify(fogfunction.attributes.topology) + '</td>';                
 		html += '<td>' + JSON.stringify(fogfunction.attributes.intent) + '</td>';                
         
@@ -459,6 +447,52 @@ function displayFunctionList(fogFunctions)
         }(fogfunction);		
 	}        
 }
+
+
+function deleteFogFunction(fogfunction)
+{
+    // delete the related intent object   
+    var intent = fogfunction.attributes.intent.value; 
+    var intentEntity = {
+        id : intent.entityId.id, 
+        type: 'ServiceIntent',
+        isPattern: false
+    };	        
+    client.deleteContext(intentEntity).then( function(data) {
+        console.log(data);
+    }).catch( function(error) {
+        console.log('failed to delete the intent entity');
+    });  	
+    
+    // delete the related service topology
+    var topology = fogfunction.attributes.topology.value; 
+    var topologyEntity = {
+        id : topology.entityId.id, 
+        type: 'Topology',
+        isPattern: false
+    };	        
+    client.deleteContext(topologyEntity).then( function(data) {
+        console.log(data);
+    }).catch( function(error) {
+        console.log('failed to delete the intent entity');
+    });  	  	
+    
+    
+    // delete this fog function
+    var functionEntity = {
+        id : fogfunction.entityId.id, 
+        type: 'FogFunction',
+        isPattern: false
+    };	    
+    
+    client.deleteContext(functionEntity).then( function(data) {
+        console.log(data);
+		showFogFunctions();		
+    }).catch( function(error) {
+        console.log('failed to delete a service topology');
+    });  	
+}
+
 
 
 function uuid() {

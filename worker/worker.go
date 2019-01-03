@@ -71,6 +71,8 @@ func (w *Worker) Start(config *Config) bool {
 		}
 	}
 
+	INFO.Println("communicating with the broker ", w.selectedBrokerURL)
+
 	for {
 		err := w.publishMyself()
 		if err != nil {

@@ -11,12 +11,21 @@ import (
 	"time"
 
 	"github.com/mmcloughlin/geohash"
+	"github.com/satori/go.uuid"
 	. "github.com/smartfog/fogflow/common/config"
 )
 
 func main() {
+	// new random uid
+	u1, err := uuid.NewV4()
+	if err != nil {
+		ERROR.Println(err)
+		return
+	}
+	rid := u1.String()
+
 	cfgFile := flag.String("f", "config.json", "A configuration file")
-	id := flag.String("i", "0", "its ID in the current site")
+	id := flag.String("i", rid, "its ID in the current site")
 	port := flag.String("p", "0", "the listening port")
 
 	flag.Parse()

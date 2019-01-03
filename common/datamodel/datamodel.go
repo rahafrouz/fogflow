@@ -188,30 +188,6 @@ type TaskInstance struct {
 	WorkerID string
 }
 
-/*
-func compareStreamSet(setA []string, setB []string) bool {
-	if len(setA) != len(setB) {
-		return false
-	}
-
-	for _, idA := range setA {
-		var exist = false
-		for _, idB := range setB {
-			if idB == idA {
-				exist = true
-				break
-			}
-		}
-
-		if exist == false {
-			return false
-		}
-	}
-
-	return true
-}
-*/
-
 func (myInstance *TaskInstance) Equal(otherInstance *TaskInstance) bool {
 	// check the task name
 	if myInstance.TaskNode.Task.Name != otherInstance.TaskNode.Task.Name {

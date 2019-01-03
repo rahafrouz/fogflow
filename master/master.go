@@ -560,6 +560,8 @@ func (master *Master) SelectWorker(locations []Point) string {
 		return ""
 	}
 
+	//
+
 	closestWorkerID := ""
 	closestTotalDistance := uint64(18446744073709551615)
 	for _, worker := range master.workers {
@@ -584,6 +586,8 @@ func (master *Master) SelectWorker(locations []Point) string {
 
 		INFO.Println("closest worker ", closestWorkerID, " with the closest distance ", closestTotalDistance)
 	}
+
+	//
 
 	return closestWorkerID
 }
