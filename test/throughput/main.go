@@ -71,7 +71,7 @@ func HandleNotifyContext(notifyCtxReq *NotifyContextRequest) {
 			total_num = total_num + 1
 		}
 
-		var delta = (time.Now().UnixNano() - StartTime.UnixNano()) / 1000000
+		var delta = (time.Now().UnixNano() - StartTime.UnixNano()) / int64(time.Millisecond)
 		var throughput = total_num * 1000 / delta
 
 		fmt.Printf("total %d, delta %d, throughput: %d \r\n", total_num, delta, throughput)

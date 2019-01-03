@@ -1,72 +1,49 @@
+'use strict';
+
 $(function(){
 
-// initialization  
-var handlers = {};
+// initialize the menu bar
+var handlers = {}
+
 var CurrentScene = null;
 
-var template = {};
-
-
-$.ajax({url:'js/function_template.txt', 
-    success: function(fileContent){
-        template.javascript =  fileContent;      
-    }
-});
-
-template.python = 'define handler(context): \r\n \t # write your own code to do data processing  \r\n \t # return the generated context entities to be published as outputs';
-
-
-var myFogFunctionExamples = [
-{
-    "fogfunction":{"type":"docker","code":"","dockerImage":"privatesite","name":"PrivateSite","user":"fogflow","inputTriggers":[{"name":"selector2","selectedAttributeList":["all"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"PrivateSite"}]}],"outputAnnotators":[]},
-    "designboard":{"edges":[{"id":1,"block1":2,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":2,"block1":3,"connector1":["condition","output"],"block2":2,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":24.549998298828086,"y":-148.75000475292967,"type":"FogFunction","module":null,"values":{"name":"PrivateSite","user":"fogflow"}},{"id":2,"x":-197.4500017011719,"y":-146.75000475292967,"type":"InputTrigger","module":null,"values":{"selectedattributes":["all"],"groupby":["id"]}},{"id":3,"x":-428.4500017011719,"y":-145.08333299999998,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"PrivateSite"}}]}
-},
-{
-    "fogfunction":{"type":"docker","code":"","dockerImage":"publicsite","name":"PublicSite","user":"fogflow","inputTriggers":[{"name":"selector2","selectedAttributeList":["all"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"PublicSite"}]}],"outputAnnotators":[]},
-    "designboard":{"edges":[{"id":1,"block1":2,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":2,"block1":3,"connector1":["condition","output"],"block2":2,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":24.549998298828086,"y":-148.75000475292967,"type":"FogFunction","module":null,"values":{"name":"PublicSite","user":"fogflow"}},{"id":2,"x":-197.4500017011719,"y":-146.75000475292967,"type":"InputTrigger","module":null,"values":{"selectedattributes":["all"],"groupby":["id"]}},{"id":3,"x":-428.4500017011719,"y":-145.08333299999998,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"PublicSite"}}]}
-},
-{
-    "fogfunction":{"type":"docker","code":"","dockerImage":"recommender","name":"Recommender","user":"fogflow","inputTriggers":[{"name":"selector3","selectedAttributeList":["ParkingRequest"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"ConnectedCar"}]}],"outputAnnotators":[]},
-    "designboard":{"edges":[{"id":2,"block1":3,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":3,"block1":4,"connector1":["condition","output"],"block2":3,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":104.54999829882809,"y":-135.75000475292967,"type":"FogFunction","module":null,"values":{"name":"Recommender","user":"fogflow"}},{"id":4,"x":-445.4166459882813,"y":-141.75000475292967,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"ConnectedCar"}},{"id":3,"x":-179.4166459882813,"y":-147.75000475292967,"type":"InputTrigger","module":null,"values":{"selectedattributes":["ParkingRequest"],"groupby":["id"]}}]}
-},
-{
-    "fogfunction":{"type":"docker","code":"","dockerImage":"connectedcar","name":"ConnectedCar","user":"fogflow","inputTriggers":[{"name":"selector2","selectedAttributeList":["all"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"ConnectedCar"}]}],"outputAnnotators":[]},
-    "designboard":{"edges":[{"id":1,"block1":2,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":2,"block1":3,"connector1":["condition","output"],"block2":2,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":70.4081801170098,"y":-124.33545929838425,"type":"FogFunction","module":null,"values":{"name":"ConnectedCar","user":"fogflow"}},{"id":2,"x":-170.0545471557174,"y":-124.36545929838422,"type":"InputTrigger","module":null,"values":{"selectedattributes":["all"],"groupby":["id"]}},{"id":3,"x":-407.87272897389914,"y":-123.54727748020238,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"ConnectedCar"}}]}
-},
-{
-    fogfunction: {"type":"docker","code":"","dockerImage":"pushbutton","name":"Pushbutton","user":"fogflow","inputTriggers":[{"name":"selector2","selectedAttributeList":["all"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"Pushbutton"}]}],"outputAnnotators":[]},
-    designboard: {"edges":[{"id":1,"block1":2,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":2,"block1":3,"connector1":["condition","output"],"block2":2,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":96,"y":-133,"type":"FogFunction","module":null,"values":{"name":"Pushbutton","user":"fogflow"}},{"id":2,"x":-141,"y":-134,"type":"InputTrigger","module":null,"values":{"selectedattributes":["all"],"groupby":["id"]}},{"id":3,"x":-373,"y":-136,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"Pushbutton"}}]}
-},
-{
-    fogfunction: {"type":"docker","code":"","dockerImage":"acoustic","name":"Acoustic","user":"fogflow","inputTriggers":[{"name":"selector2","selectedAttributeList":["all"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"Microphone"}]}],"outputAnnotators":[]},
-    designboard: {"edges":[{"id":1,"block1":2,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":2,"block1":3,"connector1":["condition","output"],"block2":2,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":96,"y":-133,"type":"FogFunction","module":null,"values":{"name":"Acoustic","user":"fogflow"}},{"id":2,"x":-141,"y":-134,"type":"InputTrigger","module":null,"values":{"selectedattributes":["all"],"groupby":["id"]}},{"id":3,"x":-373,"y":-136,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"Microphone"}}]}
-},
-{
-    fogfunction: {"type":"docker","code":"","dockerImage":"speaker","name":"Speaker","user":"fogflow","inputTriggers":[{"name":"selector2","selectedAttributeList":["all"],"groupedAttributeList":["id"],"conditionList":[{"type":"EntityType","value":"Speaker"}]}],"outputAnnotators":[]},
-    designboard: {"edges":[{"id":1,"block1":2,"connector1":["selector","output"],"block2":1,"connector2":["selectors","input"]},{"id":2,"block1":3,"connector1":["condition","output"],"block2":2,"connector2":["conditions","input"]}],"blocks":[{"id":1,"x":96,"y":-133,"type":"FogFunction","module":null,"values":{"name":"Speaker","user":"fogflow"}},{"id":2,"x":-141,"y":-134,"type":"InputTrigger","module":null,"values":{"selectedattributes":["all"],"groupby":["id"]}},{"id":3,"x":-373,"y":-136,"type":"SelectCondition","module":null,"values":{"type":"EntityType","value":"Speaker"}}]}
-}
-];
-
-
-//connect to the broker
-var client = new NGSI10Client(config.brokerURL);
-
-addMenuItem('Function', showFunction);  
-addMenuItem('Task', showTask);  
-addMenuItem('Editor', showEditor);  
-
-
-showFunction();
+// icon image for device registration
+var iconImage = null;
+var iconImageFileName = null;
+// content image for camera devices
+var contentImage = null;
+var contentImageFileName = null;
 
 // the list of all registered operators
 var operatorList = [];
+
+// design board
+var blocks = null;
+
+// client to interact with IoT Broker
+var client = new NGSI10Client(config.brokerURL);
+
+var myFogFunctionExamples = [
+{
+    topology: {"name":"anomaly-detection","description":"detect anomaly events in shops","tasks":[{"name":"Counting","operator":"counter","input_streams":[{"selected_type":"Anomaly","selected_attributes":[],"groupby":"ALL","scoped":true}],"output_streams":[{"entity_type":"Stat"}]},{"name":"Detector","operator":"anomaly","input_streams":[{"selected_type":"PowerPanel","selected_attributes":[],"groupby":"EntityID","scoped":true},{"selected_type":"Rule","selected_attributes":[],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"Anomaly"}]}]},
+    intent: {},
+    designboard: {"edges":[{"id":2,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]},{"id":3,"block1":2,"connector1":["outputs","output",0],"block2":3,"connector2":["in","input"]},{"id":4,"block1":4,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]},{"id":5,"block1":5,"connector1":["stream","output"],"block2":2,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":202,"y":-146,"type":"Task","module":null,"values":{"name":"Counting","operator":"counter","outputs":["Stat"]}},{"id":2,"x":-194,"y":-134,"type":"Task","module":null,"values":{"name":"Detector","operator":"anomaly","outputs":["Anomaly"]}},{"id":3,"x":4,"y":-18,"type":"Shuffle","module":null,"values":{"selectedattributes":["all"],"groupby":"ALL"}},{"id":4,"x":-447,"y":-179,"type":"EntityStream","module":null,"values":{"selectedtype":"PowerPanel","selectedattributes":["all"],"groupby":"EntityID","scoped":true}},{"id":5,"x":-438,"y":-5,"type":"EntityStream","module":null,"values":{"selectedtype":"Rule","selectedattributes":["all"],"groupby":"ALL","scoped":false}}]}
+}
+];
+
+addMenuItem('FogFunction', showFogFunctions);         
+addMenuItem('TaskInstance', showTaskInstances);        
+
+showFogFunctions();
+
 queryOperatorList();
 
-queryFunctionList();
+queryFogFunctions();
 
 
 $(window).on('hashchange', function() {
     var hash = window.location.hash;
+		
     selectMenuItem(location.hash.substring(1));
 });
 
@@ -78,23 +55,23 @@ function addMenuItem(name, func) {
 function selectMenuItem(name) {
     $('#menu li').removeClass('active');
     var element = $('#' + name);
-    element.addClass('active');
+    element.addClass('active');    
     
-    var handler = handlers[name];    
-    if(handler != null) {
+    var handler = handlers[name];
+    if(handler != undefined) {
         handler();        
     }
 }
 
 function initFogFunctionExamples() 
 {
-    for(var i=0; i<myFogFunctionExamples.length; i++) {
-        var example = myFogFunctionExamples[i];
-        submitFunction(example.fogfunction, example.designboard);
+    for(var i=0; i<myToplogyExamples.length; i++) {
+        var example = myToplogyExamples[i];
+        submitTopology(example.topology, example.designboard);
     }
 }
 
-function queryFunctionList() 
+function queryFogFunctions() 
 {
     var queryReq = {}
     queryReq.entities = [{type:'FogFunction', isPattern: true}];
@@ -104,321 +81,311 @@ function queryFunctionList()
 		}
     }).catch(function(error) {
         console.log(error);
-        console.log('failed to query task');
+        console.log('failed to query fog functions');
     });          
 }
 
 
-function showDesignBoard()
+function showFogFunctionEditor() 
 {
+    $('#info').html('to design a fog function');
+
     var html = '';
     
-    html += '<div class="input-prepend">';         
-    html += '<button id="cleanBoard" type="button" class="btn btn-default">Clean Board</button>';                            
-    html += '<button id="saveBoard" type="button" class="btn btn-default">Save Board</button>';                                
-    html += '<button id="generateFunction" type="button" class="btn btn-primary">Create a Fog Function</button>';        
-    html += '<button id="displayFogFunctionObject" type="button" class="btn btn-default">Display as JSON</button>';         
-    html += '</div>'; 
+    html += '<div id="topologySpecification" class="form-horizontal"><fieldset>';            
+    
+    html += '<div class="control-group"><label class="control-label">name</label>';
+    html += '<div class="controls"><input type="text" class="input-large" id="serviceName">';
+    html += '</div></div>';
+    
+    html += '<div class="control-group"><label class="control-label">description</label>';
+    html += '<div class="controls"><textarea class="form-control" rows="3" id="serviceDescription"></textarea>';
+    html += '</div></div>';      
+           
+    html += '<div class="control-group"><label class="control-label">topology</label><div class="controls">';
+    html += '<span>  </span><button id="cleanBoard" type="button" class="btn btn-default">Clean Board</button>';                            
+    html += '<span>  </span><button id="saveBoard" type="button" class="btn btn-default">Save Board</button>';  
+    html += '<span>  </span><button id="generateFunction" type="button" class="btn btn-primary">Submit</button>';                                      
+    html += '</div></div>';   
+       
+    html += '</fieldset></div>';   
         
-    html += '<div id="blocks" style="width:1000px; height:400px"></div>';
-    
-    html += '<div style="margin-top: 10px;"><h4 class="text-left">Function code</h4>';
-    html += '<select id="codeType"><option value="javascript">javascript</option><option value="python"">python</option><option value="docker"">dockerimage</option></select>';    
-    html += '<div id="codeBoard"></div>';            
-    html += '</div>'    
-    
-    $('#content').html(html);  
-    
-    var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-    $('#codeBoard').html(boardHTML);
-    $('#codeText').val(template.javascript);
-   
-	
-    var blocks = new Blocks();
- 
-    // prepare the configuration
-    var config = {};
+    html += '<div id="blocks" style="width:800px; height:400px"></div>';
+       
+    $('#content').html(html);    
 
-    // prepare the design board
-    registerAllBlocks(blocks);
-  
+    blocks = new Blocks();
+ 
+    registerAllBlocks(blocks, operatorList);
+
     blocks.run('#blocks');
     
+    blocks.types.addCompatibility('string', 'choice');
+    
     if (CurrentScene != null ) {
-		console.log(CurrentScene);
         blocks.importData(CurrentScene);
-    }  		
-	
+    }
+        
     blocks.ready(function() {                
+        // associate functions to clickable buttons
         $('#generateFunction').click(function() {
-            generateFogfunction(blocks.export());
+            boardScene2Topology(blocks.export());
         });    
         $('#cleanBoard').click(function() {
             blocks.clear();
-        });                      
+        });  
         $('#saveBoard').click(function() {
             CurrentScene = blocks.export();
-        });                              
-        $('#displayFogFunctionObject').click(function() {
-            var board = blocks.export();
-            var fogfunction = boardScene2fogfunction(board);    
-            var ffObj = {
-                fogfunction: fogfunction,
-                designboard: board
-            };
-            alert(JSON.stringify(ffObj));
-        });                                      
-    }); 	  	
+        });                                              
+    });    
+           
 }
 
+function openTopologyEditor(topologyEntity)
+{		
+    if(topologyEntity.attributes.designboard){
+        CurrentScene = topologyEntity.attributes.designboard.value;          
+        showTopologyEditor(); 
+        
+        var topology = topologyEntity.attributes.template.value;
+        
+        $('#serviceName').val(topology.name);
+        $('#serviceDescription').val(topology.description);
+    }
+}
 
-function showEditor() 
+function deleteTopology(topologyEntity)
 {
-    $('#info').html('editor to design a fog function');
+    var entityid = {
+        id : topologyEntity.entityId.id, 
+        type: 'Topology',
+        isPattern: false
+    };	    
     
-	showDesignBoard();
-    
-    $('#codeType').change(function() {
-        var fType = $(this).val();
-        switch(fType) {
-            case 'javascript':
-                var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-                $('#codeBoard').html(boardHTML);
-                $('#codeText').val(template.javascript);
-                break;
-            case 'python':
-                var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-                $('#codeBoard').html(boardHTML);
-                $('#codeText').val(template.python);
-                break;
-            case 'docker':
-                var boardHTML = '<select id="codeImage"></select>';
-                $('#codeBoard').html(boardHTML);                
-                for(var i=0; i<operatorList.length; i++){
-                    var operatorName = operatorList[i];
-                    $('#codeImage').append($("<option></option>").attr("value", operatorName).text(operatorName));                                                    
-                }                
-                break;
-        }        
-    });    
-    
-    //initialize the content in the code textarea
-    $('#codeText').val(template.javascript);              
+    client.deleteContext(entityid).then( function(data) {
+        console.log(data);
+		updateTopologyList();		
+    }).catch( function(error) {
+        console.log('failed to delete a service topology');
+    });  	
 }
 
 
 function queryOperatorList()
 {
     var queryReq = {}
-    queryReq.entities = [{type:'DockerImage', isPattern: true}];           
+    queryReq.entities = [{type:'Operator', isPattern: true}];           
     
-    client.queryContext(queryReq).then( function(imageList) {
-        console.log(imageList);
-
-        for(var i=0; i<imageList.length; i++){
-            var dockerImage = imageList[i];            
-            var operatorName = dockerImage.attributes.operator.value;
-            
-            var exist = false;
-            for(var j=0; j<operatorList.length; j++){
-                if(operatorList[j] == operatorName){
-                    exist = true;
-                    break;
-                }
-            }
-            
-            if(exist == false){
-                operatorList.push(operatorName);                
-            }            
-        }
+    client.queryContext(queryReq).then( function(operators) {
+        for(var i=0; i<operators.length; i++){
+            var entity = operators[i];        
+            var operator = entity.attributes.operator.value;                 
+            operatorList.push(operator.name);              
+    	} 
+        
+        // add it into the select list        
     }).catch(function(error) {
         console.log(error);
-        console.log('failed to query the operator list');
-    });     
+        console.log('failed to query context');
+    });    
 }
 
-function generateFogfunction(scene)
+function boardScene2Topology(scene)
 {
-    // construct the fog function object based on the design board
-    var fogfunction = boardScene2fogfunction(scene);    
-   
-    // submit this fog function
-    submitFunction(fogfunction, scene);
+    // step 1: construct the service topology object       
+    var topologyName = $('#serviceName').val();
+    var serviceDescription = $('#serviceDescription').val();
+
+    var topology = {};    
+    topology.name = topologyName;
+    topology.description = serviceDescription;    
+    topology.tasks = generateTaskList(scene);           
+
+    var topologyCtxObj = {};    
+    topologyCtxObj.entityId = {
+        id : 'Topology.' + topology.name, 
+        type: 'Topology',
+        isPattern: false
+    };    
+    topologyCtxObj.attributes = {};   
+    topologyCtxObj.attributes.status = {type: 'string', value: 'enabled'};
+    topologyCtxObj.attributes.designboard = {type: 'object', value: scene};    
+    topologyCtxObj.attributes.template = {type: 'object', value: topology};  
+
+
+    // step 2: construct an intent object
+    var intent = {};        
+    intent.topology = topologyName;    
+    intent.priority = {
+        'exclusive': false,
+        'level': 0
+    };        
+    intent.qos = "default";    
+    intent.geoscope = {
+        "scopeType": "local",
+        "scopeValue": "local"
+    };   
+    
+    var intentCtxObj = {};    
+    intentCtxObj.entityId = { 
+        id: 'ServiceIntent.' + uuid(),           
+        type: 'ServiceIntent',
+        isPattern: false
+    };
+    
+    intentCtxObj.attributes = {};   
+    intentCtxObj.attributes.status = {type: 'string', value: 'enabled'};
+    intentCtxObj.attributes.intent = {type: 'object', value: intent};  
+    
+    // step 3: create this fog function            
+    var functionCtxObj = {};    
+    functionCtxObj.entityId = {
+        id : 'FogFunction.' + topologyName, 
+        type: 'FogFunction',
+        isPattern: false
+    };    
+    functionCtxObj.attributes = {};   
+    functionCtxObj.attributes.name = {type: 'string', value: topologyName};    
+    functionCtxObj.attributes.topology = {type: 'object', value: topology};    
+    functionCtxObj.attributes.intent = {type: 'object', value: intent};  
+    functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};        
+    client.updateContext(functionCtxObj).then( function(data1) {
+        console.log(data1);                 
+    }).then( function(data2) {
+        console.log(data2);                 
+        client.updateContext(topologyCtxObj);        
+    }).then( function(data3) {
+        console.log(data3);                 
+        client.updateContext(intentCtxObj);                
+        
+        showFogFunctions();
+    }).catch( function(error) {
+        console.log('failed to record the created fog function');
+    });              
 }
 
 
-
-function boardScene2fogfunction(scene)
-{
-    console.log(scene);  
-    var fogfunction = {};    
+function generateTaskList(scene)
+{    
+    var tasklist = [];
     
-    // check the function type and the provided function code
-    var fType = $('#codeType option:selected').val();    
-    fogfunction.type = fType;
-    
-    switch(fType) {
-        case 'javascript':
-            var fCode = $('#codeText').val();
-            fogfunction.code = fCode;    
-            fogfunction.dockerImage = 'nodejs';           
-            break;
-        case 'python':
-            var fCode = $('#codeText').val();
-            fogfunction.code = fCode;    
-            fogfunction.dockerImage = 'pythonbase';           
-            break;
-        case 'docker':
-            var dockerImage = $('#codeImage option:selected').val();            
-            fogfunction.code = '';    
-            fogfunction.dockerImage = dockerImage;           
-            break;        
-    }     
-    
-    // check the defined inputs and outputs of this function
     for(var i=0; i<scene.blocks.length; i++){
         var block = scene.blocks[i];
-        
-        console.log(block.name);
-        
-        if(block.type == "FogFunction") {
-            fogfunction.name = block.values['name'];
-            fogfunction.user = block.values['user'];
+        if (block.type == 'Task') {            
+            var task = {};
             
-            // construct its input streams
-            fogfunction.inputTriggers = findInputTriggers(scene, block.id);
+            task.name = block.values['name'];
+            task.operator = block.values['operator'];
+
+            task.input_streams = [];
+            task.output_streams = [];
             
-            // construct its output streams
-            fogfunction.outputAnnotators = findOutputAnnotators(scene, block.id);   
+            // look for all input streams associated with this task
+            task.input_streams = findInputStream(scene, block.id); 
+                        
+            // figure out the defined output stream types                        
+            for(var j=0; j<block.values['outputs'].length; j++){
+                var outputstream = {};
+                outputstream.entity_type = block.values['outputs'][j];
+                task.output_streams.push(outputstream);
+            }
             
-            break;         
+            tasklist.push(task);
+        }
+    }
+    
+    return tasklist;
+}
+
+function findInputStream(scene, blockid)
+{
+    var inputstreams = [];
+    
+    for(var i=0; i<scene.edges.length; i++) {
+        var edge = scene.edges[i];
+        if (edge.block2 == blockid) {
+            var inputblockId = edge.block1;
+            
+            for(var j=0; j<scene.blocks.length; j++){
+                var block = scene.blocks[j];
+                if (block.id == inputblockId){
+                    if (block.type == 'Shuffle') {                        
+                        var inputstream = {};
+                        
+                        inputstream.selected_type = findInputType(scene,  block.id)          
+                        
+                        if (block.values['selectedattributes'].length == 1 && block.values['selectedattributes'][0].toUpperCase() == 'ALL') {
+                            inputstream.selected_attributes = [];
+                        } else {
+                            inputstream.selected_attributes = block.values['selectedattributes'];                            
+                        }
+                        
+                        inputstream.groupby = block.values['groupby'];                                                                        
+                        inputstream.scoped = true;
+                        
+                        inputstreams.push(inputstream)
+                    } else if (block.type == 'EntityStream') {
+                        var inputstream = {};
+                                                
+                        inputstream.selected_type = block.values['selectedtype'];            
+                        
+                        if (block.values['selectedattributes'].length == 1 && block.values['selectedattributes'][0].toUpperCase() == 'ALL') {
+                            inputstream.selected_attributes = [];
+                        } else {
+                            inputstream.selected_attributes = block.values['selectedattributes'];                            
+                        }                                                            
+                        
+                        inputstream.groupby = block.values['groupby'];                                                
+                        inputstream.scoped = block.values['scoped'];
+                        
+                        inputstreams.push(inputstream)
+                    }
+                }
+            }
         }
     }        
     
-    return fogfunction;    
+    return inputstreams;
 }
 
-function findInputTriggers(scene, blockId)
+function findInputType(scene, blockId)
 {
-    var selectors = [];
+    var inputType = "unknown";
 
     for(var i=0; i<scene.edges.length; i++){
         var edge = scene.edges[i];
         
         if(edge.block2 == blockId) {
+            var index = edge.connector1[2];     
+            
             for(var j=0; j<scene.blocks.length; j++) {
-                var block = scene.blocks[j];
-                
-                if(block.id == edge.block1) {
-                    var selector = {};
-                    selector.name = "selector" + block.id
-                    selector.selectedAttributeList = block.values.selectedattributes;
-                    selector.groupedAttributeList = block.values.groupby;
-                    selector.conditionList = findConditions(scene, block.id);
-                    
-                    selectors.push(selector);
+                var block = scene.blocks[j];                
+                if(block.id == edge.block1) {  
+                    console.log(block);
+                    inputType = block.values.outputs[index];                    
                 }
             }               
         }
     }
     
-    return selectors;
+    return inputType;
 }
 
-
-function findConditions(scene, blockId)
-{
-    var conditions = [];
+function showFogFunctions() 
+{    
+    $('#info').html('list of all registered fog functions');
     
-    for(var i=0; i<scene.edges.length; i++){
-        var edge = scene.edges[i];    
-        
-        if(edge.block2 == blockId) {        
-            for(var j=0; j<scene.blocks.length; j++) {
-                var block = scene.blocks[j];
-                
-                if(block.id == edge.block1) {        
-                    var condition = {};                    
-                    condition.type = block.values.type;
-                    condition.value = block.values.value;                                    
-                    conditions.push(condition);
-                }
-            }
-        }
-    }
-            
-    return conditions
-}
+    var html = '<div style="margin-bottom: 10px;"><button id="registerFunction" type="button" class="btn btn-primary">register</button></div>';
+    html += '<div id="functionList"></div>';
 
-function findOutputAnnotators(scene, blockId)
-{
-    var annotators = [];
-    
-    for(var i=0; i<scene.edges.length; i++){
-        var edge = scene.edges[i];    
-        
-        if(edge.block1 == blockId) {                    
-            for(var j=0; j<scene.blocks.length; j++) {
-                var block = scene.blocks[j];
-                
-                if(block.id == edge.block2) {        
-                    var annotator = {};    
-                    
-                    annotator.entityType = block.values.entitytype;
-                    annotator.groupInherited = block.values.herited;                
-                    
-                    annotators.push(annotator);
-                }
-            }
-        }
-    }            
-    
-    return annotators;    
-}
-
-
-function submitFunction(fogfunction, designboard)
-{
-	console.log("==============================")
-    console.log(JSON.stringify(fogfunction));  
-	console.log(JSON.stringify(designboard));
-	console.log("============end===============")
-
-        
-    var functionCtxObj = {};
-    
-    functionCtxObj.entityId = {
-        id : 'FogFunction.' + fogfunction.name, 
-        type: 'FogFunction',
-        isPattern: false
-    };
-    
-    functionCtxObj.attributes = {};   
-    functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};
-    functionCtxObj.attributes.designboard = {type: 'object', value: designboard};    	
-    functionCtxObj.attributes.fogfunction = {type: 'object', value: fogfunction};    
-    
-    client.updateContext(functionCtxObj).then( function(data) {
-        console.log(data);  
-              
-        // update the list of submitted topologies
-        updateFogFunctionList();                       
-    }).catch( function(error) {
-        console.log('failed to submit the fog function');
-    });           
-}
-
-function showFunction() 
-{
-    var queryReq = {}
-    queryReq.entities = [{type:'FogFunction', isPattern: true}];
-    client.queryContext(queryReq).then( function(fogFunctionList) {
-        console.log(fogFunctionList);
-        displayFunctionList(fogFunctionList);
-    }).catch(function(error) {
-        console.log(error);
-        console.log('failed to query task');
-    });          
+	$('#content').html(html);   
+      
+    $( "#registerFunction" ).click(function() {
+        showFogFunctionEditor();
+    });    
+                  
+    // update the list of submitted fog functions
+    updateFogFunctionList();    
 }
 
 function updateFogFunctionList() 
@@ -434,211 +401,131 @@ function updateFogFunctionList()
     });       
 }
 
-function displayFunctionList(fogfunctions) 
+function displayFunctionList(fogFunctions) 
 {
-    $('#info').html('list of all submitted fog functions');
-
-    if(fogfunctions.length == 0) {
-        $('#content').html('');
-        return;
-    }          
-
+    if(fogFunctions == null || fogFunctions.length == 0) {
+        return        
+    }
+    
     var html = '<table class="table table-striped table-bordered table-condensed">';
    
     html += '<thead><tr>';
     html += '<th>ID</th>';
-    html += '<th>FogFunction</th>';
-    html += '<th>Status</th>';    
-    html += '<th>Control</th>';        
+    html += '<th>Name</th>';        
+    html += '<th>Topology</th>';            
+    html += '<th>Intent</th>';                
     html += '</tr></thead>';    
-
-    for(var i=0; i<fogfunctions.length; i++){
-        var fogfunction = fogfunctions[i];
+       
+    for(var i=0; i<fogFunctions.length; i++){
+        var fogfunction = fogFunctions[i];
+		
+    	html += '<tr>'; 
+		html += '<td>' + fogfunction.entityId.id;
+		html += '<br><button id="editor-' + fogfunction.entityId.id + '" type="button" class="btn btn-default">editor</button>';
+		html += '<br><button id="delete-' + fogfunction.entityId.id + '" type="button" class="btn btn-default">delete</button>';
+		html += '</td>';        
+               
+        var topology = fogfunction.attributes.topology.value;
         
-        html += '<tr>';		
-		html += '<td>' + fogfunction.entityId.id + '<br><button id="editor-' + fogfunction.entityId.id + '" type="button" class="btn btn-default">editor</button>';        
-		html += '<br><button id="delete-' + fogfunction.entityId.id + '" type="button" class="btn btn-default">delete</button></td>';        
-		html += '<td>' + JSON.stringify(fogfunction.attributes['fogfunction'].value) + '</td>'; 
+		html += '<td>' + topology.name + '</td>';                       
+                  
+		html += '<td>' + JSON.stringify(fogfunction.attributes.topology) + '</td>';                
+		html += '<td>' + JSON.stringify(fogfunction.attributes.intent) + '</td>';                
         
-        var status = fogfunction.attributes['status'].value;        
-        
-        if ( status == 'disabled' ) {
-		    html += '<td>inactive</td>';               
-            html += '<td><button id="control-' + fogfunction.entityId.id + '" type="button" class="btn btn-primary">enable</button></td>';
-        } else {
-		    html += '<td>active</td>';                           
-            html += '<td><button id="control-' + fogfunction.entityId.id + '" type="button" class="btn btn-primary">disable</button></td>';
-        }
-             
-		html += '</tr>';			
+		html += '</tr>';	
 	}
        
-    html += '</table>';            
-	
-	$('#content').html(html);     
+    html += '</table>';  
+
+	$('#functionList').html(html);  
     
-    // associate a click handler to the control button
-    for(var i=0; i<fogfunctions.length; i++){
-        var fogfunction = fogfunctions[i];
-                
-        var ctrlButton = document.getElementById("control-" + fogfunction.entityId.id);
-        ctrlButton.onclick = function(f) {
-            var myFunction = f;
+    // associate a click handler to the editor button
+    for(var i=0; i<fogFunctions.length; i++){
+        var fogfunction = fogFunctions[i];
+        
+		// association handlers to the buttons
+        var editorButton = document.getElementById('editor-' + fogfunction.entityId.id);
+        editorButton.onclick = function(myFogFunction) {
             return function(){
-                switchFogFunctionStatus(myFunction);
+                openFogFunctionEditor(myFogFunction);
             };
-        }(fogfunction);	
+        }(fogfunction);
 		
-        var editorButton = document.getElementById("editor-" + fogfunction.entityId.id);
-        editorButton.onclick = function(f) {
-            var myFunction = f;
+        var deleteButton = document.getElementById('delete-' + fogfunction.entityId.id);
+        deleteButton.onclick = function(myFogFunction) {
             return function(){
-                openEditor(myFunction);
+                deleteFogFunction(myFogFunction);
             };
         }(fogfunction);		
-		
-        var deleteButton = document.getElementById("delete-" + fogfunction.entityId.id);
-        deleteButton.onclick = function(f) {
-            var myFunction = f;
-            return function(){
-                deleteFunction(myFunction);
-            };
-        }(fogfunction);			
-	}      	   	
+	}        
 }
 
 
-function switchFogFunctionStatus(fogFunc)
-{
-    var functionCtxObj = {};    
-    
-    // switch the status
-    functionCtxObj.entityId = fogFunc.entityId
-    
-    functionCtxObj.attributes = {};   
-    
-    if (fogFunc.attributes.status.value == "enabled") {
-        functionCtxObj.attributes.status = {type: 'string', value: 'disabled'};        
-    } else {
-        functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};        
+function uuid() {
+    var uuid = "", i, random;
+    for (i = 0; i < 32; i++) {
+        random = Math.random() * 16 | 0;
+        if (i == 8 || i == 12 || i == 16 || i == 20) {
+            uuid += "-"
+        }
+        uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
     }
     
-    client.updateContext(functionCtxObj).then( function(data) {
-        console.log(data);                
-        // update the list of submitted topologies
-        updateFogFunctionList();                       
-    }).catch( function(error) {
-        console.log('failed to submit the topology');
-    });      
-}
+    return uuid;
+}    
+  
 
-function deleteFunction(fogFunc)
-{
-    var entityid = {
-        id : fogFunc.entityId.id, 
-        type: 'FogFunction',
-        isPattern: false
-    };	    
-    
-    client.deleteContext(entityid).then( function(data) {
-        console.log(data);
-		updateFogFunctionList();		
-    }).catch( function(error) {
-        console.log('failed to delete a fog function');
-    });  	
-}
 
-function showTask() 
+function showTaskInstances() 
 {
-    $('#info').html('list of all triggerred function tasks');
-            
+    $('#info').html('list of running data processing tasks');
+
     var queryReq = {}
-    queryReq.entities = [{type:'Task', isPattern: true}];
-    queryReq.restriction = {scopes: [{scopeType: 'stringQuery', scopeValue: 'topology=system'}]}    
-
+    queryReq.entities = [{type:'Task', isPattern: true}];    
+    
     client.queryContext(queryReq).then( function(taskList) {
         console.log(taskList);
         displayTaskList(taskList);
     }).catch(function(error) {
         console.log(error);
-        console.log('failed to query task');
-    });        
+        console.log('failed to query context');
+    });     
 }
-
 
 function displayTaskList(tasks) 
 {
-    $('#info').html('list of all function tasks that have been triggerred');
-
-    if(tasks.length == 0) {
-        $('#content').html('');
-        return;
-    }          
-
+    if(tasks == null || tasks.length ==0){
+        $('#content').html('');                   
+        return
+    }
+    
     var html = '<table class="table table-striped table-bordered table-condensed">';
    
     html += '<thead><tr>';
     html += '<th>ID</th>';
     html += '<th>Type</th>';
-    html += '<th>Attributes</th>';	
-    html += '<th>DomainMetadata</th>';		
+    html += '<th>Attributes</th>';
+    html += '<th>DomainMetadata</th>';    
     html += '</tr></thead>';    
-
+       
     for(var i=0; i<tasks.length; i++){
         var task = tasks[i];
-        html += '<tr>';
+		
+        html += '<tr>'; 
 		html += '<td>' + task.entityId.id + '</td>';
 		html += '<td>' + task.entityId.type + '</td>'; 
 		html += '<td>' + JSON.stringify(task.attributes) + '</td>';        
 		html += '<td>' + JSON.stringify(task.metadata) + '</td>';
-		html += '</tr>';			
+		html += '</tr>';	
 	}
        
-    html += '</table>';            
-	
-	$('#content').html(html);      
+    html += '</table>'; 
+
+	$('#content').html(html);   
 }
 
-
-function openEditor(fogfunctionEntity)
-{
-    if(fogfunctionEntity.attributes.designboard){
-        CurrentScene = fogfunctionEntity.attributes.designboard.value;   	
-    }
-		
-	//selectMenuItem('Editor');
-	//window.location.hash = '#Editor';			
-	showEditor();
-       
-    var fogfunction = fogfunctionEntity.attributes.fogfunction.value;
-			    		
-	// check the function type and the provided function code
-	$('#codeType').val(fogfunction.type);
-	
-    switch(fogfunction.type) {
-        case 'javascript':		
-            var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-            $('#codeBoard').html(boardHTML);		
-       		$('#codeText').val(fogfunction.code);          
-       		break;
-   		case 'python':			
-            var boardHTML = '<textarea id="codeText" class="form-control" style="min-width: 800px; min-height: 200px"></textarea>';
-            $('#codeBoard').html(boardHTML);		
-       		$('#codeText').val(fogfunction.code);          
-       		break;
-   		case 'docker':				
-            var boardHTML = '<select id="codeImage"></select>';
-            $('#codeBoard').html(boardHTML); 
-            for(var i=0; i<operatorList.length; i++){
-                var operatorName = operatorList[i];
-                $('#codeImage').append($("<option></option>").attr("value", operatorName).text(operatorName));                                                    
-            } 			               
-       		$('#codeImage').val(fogfunction.dockerImage);                     
-       		break;        
-	} 
-
-}
 
 });
+
 
 

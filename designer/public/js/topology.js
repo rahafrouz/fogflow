@@ -12,8 +12,6 @@ var geoscope = {
 
 var CurrentScene = null;
 
-// location of new device
-var locationOfNewDevice = null;
 // icon image for device registration
 var iconImage = null;
 var iconImageFileName = null;
@@ -52,11 +50,11 @@ var myToplogyExamples = [
 }
 ];
 
-addMenuItem('Template', showTemplates);         
+addMenuItem('Topology', showTopologies);         
 addMenuItem('Intent', showIntents);     
-addMenuItem('Task', showTasks);        
+addMenuItem('TaskInstance', showTaskInstances);        
 
-showTemplates();
+showTopologies();
 
 queryOperatorList();
 
@@ -356,15 +354,15 @@ function submitTopology(topology, designboard)
     client.updateContext(topologyCtxObj).then( function(data) {
         console.log(data);                
         // update the list of submitted topologies
-        showTemplates();               
+        showTopologies();               
     }).catch( function(error) {
         console.log('failed to submit the topology');
     });    
 }
 
-function showTemplates() 
+function showTopologies() 
 {    
-    $('#info').html('list of all registered service templates');
+    $('#info').html('list of all registered service topologies');
     
     var html = '<div style="margin-bottom: 10px;"><button id="registerTopology" type="button" class="btn btn-primary">register</button></div>';
     html += '<div id="topologyList"></div>';
@@ -781,7 +779,7 @@ function removeMap() {
 }
 
 
-function showTasks() 
+function showTaskInstances() 
 {
     $('#info').html('list of running data processing tasks');
 

@@ -23,7 +23,7 @@ addMenuItem('Broker', showBrokers);
 addMenuItem('Master', showMaster);    
 addMenuItem('Worker', showWorkers);    
 addMenuItem('Device', showDevices); 
-//addMenuItem('Entity', showEntities); 
+addMenuItem('Stream', showStreams); 
 
 
 showArch();
@@ -660,7 +660,7 @@ function showMap()
     return map; 
 }
 
-function showEntities() 
+function showStreams() 
 {
     $('#info').html('list of all entities');
 
