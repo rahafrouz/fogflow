@@ -150,8 +150,10 @@ func (master *Master) onTimer() {
 func (master *Master) Quit() {
 	INFO.Println("to stop the master")
 	master.unregisterMyself()
-	master.communicator.StopConsuming()
+	INFO.Println("unregister myself")
 	master.ticker.Stop()
+	INFO.Println("stop the timer")
+	master.communicator.StopConsuming()
 	INFO.Println("stop consuming the messages")
 }
 
@@ -556,12 +558,10 @@ func (master *Master) SelectWorker(locations []Point) string {
 		for _, worker := range master.workers {
 			return worker.WID
 		}
-
 		return ""
 	}
 
-	//
-
+	// select the workers with the closest distance
 	closestWorkerID := ""
 	closestTotalDistance := uint64(18446744073709551615)
 	for _, worker := range master.workers {
@@ -587,7 +587,7 @@ func (master *Master) SelectWorker(locations []Point) string {
 		INFO.Println("closest worker ", closestWorkerID, " with the closest distance ", closestTotalDistance)
 	}
 
-	//
+	// select the one with lowest capacity if there are more than one with the closest distance
 
 	return closestWorkerID
 }

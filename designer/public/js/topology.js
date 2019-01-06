@@ -45,8 +45,8 @@ var myToplogyExamples = [
     topology: {"name":"ParkingLotRecommendation","description":"to recommend where to park around the destination","tasks":[{"name":"WhereToParking","operator":"recommender","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
     designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-14,"y":-46,"type":"Task","module":null,"values":{"name":"WhereToParking","operator":"recommender","outputs":["Out"]}},{"id":2,"x":-379,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}}]} 
 },{
-    topology: {"name":"test","description":"for test","tasks":[{"name":"Simple","operator":"dummy","input_streams":[{"selected_type":"Hello","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Result"}]}]},
-    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-58,"y":-89,"type":"Task","module":null,"values":{"name":"Simple","operator":"dummy","outputs":["Result"]}},{"id":2,"x":-339,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"Hello","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}  
+    topology: {"name":"child-finder","description":"search for a lost child based on face recognition","tasks":[{"name":"childfinder","operator":"facefinder","input_streams":[{"selected_type":"Camera","selected_attributes":[],"groupby":"EntityID","scoped":true},{"selected_type":"ChildLost","selected_attributes":[],"groupby":"ALL","scoped":false}],"output_streams":[{"entity_type":"ChildFound"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]},{"id":2,"block1":3,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":7,"y":-107,"type":"Task","module":null,"values":{"name":"childfinder","operator":"facefinder","outputs":["ChildFound"]}},{"id":2,"x":-292,"y":-161,"type":"EntityStream","module":null,"values":{"selectedtype":"Camera","selectedattributes":["all"],"groupby":"EntityID","scoped":true}},{"id":3,"x":-286,"y":-2,"type":"EntityStream","module":null,"values":{"selectedtype":"ChildLost","selectedattributes":["all"],"groupby":"ALL","scoped":false}}]} 
 }
 ];
 
@@ -382,7 +382,6 @@ function updateTopologyList()
     var queryReq = {}
     queryReq.entities = [{type:'Topology', isPattern: true}];
     client.queryContext(queryReq).then( function(topologyList) {
-        console.log(topologyList);
         displayTopologyList(topologyList);
     }).catch(function(error) {
         console.log(error);
@@ -465,7 +464,6 @@ function showIntents()
     queryReq.entities = [{type:'ServiceIntent', isPattern: true}];    
     
     client.queryContext(queryReq).then( function(intents) {
-        console.log(intents);
         displayIntentList(intents);
     }).catch(function(error) {
         console.log(error);
@@ -484,6 +482,7 @@ function displayIntentList(intents)
     var html = '<table class="table table-striped table-bordered table-condensed">';
    
     html += '<thead><tr>';
+    html += '<th>ID</th>';        
     html += '<th>Topology</th>';    
     html += '<th>Priority</th>';    
     html += '<th>QoS</th>';
@@ -494,13 +493,15 @@ function displayIntentList(intents)
         var entity = intents[i];
         
         var intent = entity.attributes.intent.value;		
-        console.log(intent);
         
         html += '<tr>'; 
+		html += '<td>' + entity.entityId.id;
+        html += '<br><button id="DELETE-' + entity.entityId.id + '" type="button" class="btn btn-primary">Delete</button>';             
+        html + '</td>';                                
 		html += '<td>' + intent.topology + '</td>';                        
 		html += '<td>' + JSON.stringify(intent.priority)+ '</td>';                
 		html += '<td>' + intent.qos + '</td>';        
-		html += '<td>' + intent.geoscope + '</td>';                
+		html += '<td>' + JSON.stringify(intent.geoscope) + '</td>';                
                               
 		html += '</tr>';	                        
 	}    
@@ -508,6 +509,17 @@ function displayIntentList(intents)
     html += '</table>';  
     
 	$('#intentList').html(html);      
+
+    // associate a click handler to generate device profile on request
+    for(var i=0; i<intents.length; i++){
+        var entity = intents[i];        
+        var deleteButton = document.getElementById('DELETE-' + entity.entityId.id);
+        deleteButton.onclick = function(intentID) {
+            return function(){
+                removeIntent(intentID);
+            };                        
+        }(entity.entityId.id);        
+	}    
 }
 
 
@@ -529,12 +541,15 @@ function addIntent()
     html += '<select id="resouceUsage"><option>inclusive</option><option>exclusive</option></select>';
     html += '</div></div>';     
 
-
     html += '<div class="control-group"><label class="control-label">Objective</label><div class="controls">';
-    html += '<select id="QoS"><option>Max Throughput</option><option>Mini Latency</option><option>Max Bandwidth Saving</option></select>';    
+    html += '<select id="QoS">';
+    html += '<option value="NONE">None</option>';
+    html += '<option value="MAX_THROUGHPUT">Max Throughput</option>';
+    html += '<option value="MIN_LATENCY">Min Latency</option>';
+    html += '<option value="MIN_COST">Min Cost</option></select>';    
     html += '</div></div>';  
 
-    html += '<div class="control-group"><label class="control-label">Scope</label><div class="controls">';
+    html += '<div class="control-group"><label class="control-label">Geoscope</label><div class="controls">';
     html += '<select id="geoscope"><option value="local">local</option><option value="global">global</option><option value="custom">custom</option></select>';    
     html += '</div></div>';  
     
@@ -565,6 +580,23 @@ function addIntent()
             removeMap();
         }
     });
+}
+
+
+function removeIntent(entityID)
+{
+    var entityid = {
+        id : entityID, 
+        isPattern: false
+    };	    
+    
+    client.deleteContext(entityid).then( function(data) {
+        console.log('remove the service intent');		
+        // show the updated intent list
+        showIntents();				
+    }).catch( function(error) {
+        console.log('failed to delete this service intent');
+    }); 
 }
 
 
@@ -659,6 +691,8 @@ function submitIntent()
     intentCtxObj.attributes = {};   
     intentCtxObj.attributes.status = {type: 'string', value: 'enabled'};
     intentCtxObj.attributes.intent = {type: 'object', value: intent};  
+    
+    console.log(JSON.stringify(intentCtxObj));
         
     client.updateContext(intentCtxObj).then( function(data) {
         console.log(data);  
@@ -787,7 +821,6 @@ function showTaskInstances()
     queryReq.entities = [{type:'Task', isPattern: true}];    
     
     client.queryContext(queryReq).then( function(taskList) {
-        console.log(taskList);
         displayTaskList(taskList);
     }).catch(function(error) {
         console.log(error);

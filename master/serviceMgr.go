@@ -31,24 +31,18 @@ func (sMgr *ServiceMgr) handleServiceIntentUpdate(intentCtxObj *ContextObject) {
 	INFO.Println("handle intent update")
 	INFO.Println(intentCtxObj)
 
-	status := intentCtxObj.Attributes["status"].Value
-
-	sIntent := ServiceIntent{}
-	jsonText, _ := json.Marshal(intentCtxObj.Attributes["intent"].Value.(map[string]interface{}))
-	err := json.Unmarshal(jsonText, &sIntent)
-	if err == nil {
-		INFO.Println(sIntent)
+	if intentCtxObj.IsEmpty() == true {
+		sMgr.removeServiceIntent(intentCtxObj.Entity.ID)
 	} else {
-		INFO.Println(err)
-	}
-
-	// attached the entityID as the ID of this service intent
-	sIntent.ID = intentCtxObj.Entity.ID
-
-	if status == "remove" {
-		sMgr.removeServiceIntent(sIntent.ID)
-	} else {
-		sMgr.handleServiceIntent(&sIntent)
+		sIntent := ServiceIntent{}
+		jsonText, _ := json.Marshal(intentCtxObj.Attributes["intent"].Value.(map[string]interface{}))
+		err := json.Unmarshal(jsonText, &sIntent)
+		if err == nil {
+			INFO.Println(sIntent)
+			sMgr.handleServiceIntent(&sIntent)
+		} else {
+			ERROR.Println(err)
+		}
 	}
 }
 
@@ -155,4 +149,5 @@ func (sMgr *ServiceMgr) ForwardIntent2RemoteSite(taskIntent *TaskIntent, site Si
 
 func (sMgr *ServiceMgr) removeServiceIntent(id string) {
 	INFO.Printf("the master is going to remove the requested service intent %s\n", id)
+
 }

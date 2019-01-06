@@ -43,6 +43,7 @@ func main() {
 	signal.Notify(c, syscall.SIGTERM)
 	<-c
 
+	INFO.Println("unsubscribe ...")
 	unsubscribe(&config, sid)
 
 	// delete the input entities

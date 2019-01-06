@@ -84,7 +84,6 @@ function showBrokers()
     ngsi9client.discoverContextAvailability(discoverReq).then( function(response) {
         var brokers = [];
         if (response.errorCode.code == 200 && response.hasOwnProperty('contextRegistrationResponses')) {
-            console.log(response.contextRegistrationResponses);
             for(var i in response.contextRegistrationResponses) {
                 var contextRegistrationResponse = response.contextRegistrationResponses[i];
                 var brokerID = contextRegistrationResponse.contextRegistration.entities[0].id;
@@ -94,7 +93,6 @@ function showBrokers()
                 }
             }
         }         
-        console.log(brokers);
         displayBrokerList(brokers);
     }).catch(function(error) {
         console.log(error);
@@ -134,7 +132,6 @@ function showMaster()
     var queryReq = {}
     queryReq.entities = [{type:'Master', isPattern: true}];
     client.queryContext(queryReq).then( function(masterList) {
-        console.log(masterList);
         displayMasterList(masterList);
     }).catch(function(error) {
         console.log(error);
@@ -170,47 +167,99 @@ function showWorkers()
 {
     $('#info').html('show all edge nodes on the map');
     
-    var html = '<div id="map"  style="width: 700px; height: 500px"></div>';       
-    $('#content').html(html);   
+    var html = '<table class="table table-striped table-bordered table-condensed" id="workerList"></table>';                  
+    html += '<div id="map"  style="width: 700px; height: 500px"></div>';       
     
-    var curMap = showMap();
+    $('#content').html(html);       
     
-    // show edge nodes on the map
-    displayEdgeNodeOnMap(curMap);        
-}
-
-function displayEdgeNodeOnMap(map)
-{
     var queryReq = {}
-    queryReq.entities = [{"type":'Worker', "isPattern": true}];
-    
+    queryReq.entities = [{"type":'Worker', "isPattern": true}];    
     client.queryContext(queryReq).then( function(edgeNodeList) {
-        console.log(edgeNodeList);
-
-        var edgeIcon = L.icon({
-            iconUrl: '/img/gateway.png',
-            iconSize: [48, 48]
-        });      
+        // list all edge nodes in the table
+        displayEdgeNodeList(edgeNodeList);                
         
-        for(var i=0; i<edgeNodeList.length; i++){
-            var worker = edgeNodeList[i];    
-            
-            console.log(worker.attributes.physical_location.value);
-            
-            var latitude = worker.attributes.physical_location.value.latitude;
-            var longitude = worker.attributes.physical_location.value.longitude;
-            var edgeNodeId = worker.entityId.id;
-            
-            var marker = L.marker(new L.LatLng(latitude, longitude), {icon: edgeIcon});
-			marker.nodeID = edgeNodeId;
-            marker.addTo(map).bindPopup(edgeNodeId);
-		    marker.on('click', showRunningTasks);
-        }            
-                
+        // show edge nodes on the map
+        displayEdgeNodeOnMap(edgeNodeList);                
     }).catch(function(error) {
         console.log(error);
-        console.log('failed to query context');
-    });     
+        console.log('failed to query the list of workers');
+    });                
+}
+
+
+function displayEdgeNodeList(workerList)
+{           
+    var queryReq = {}
+    queryReq.entities = [{type:'Task', isPattern: true}];
+    
+    client.queryContext(queryReq).then( function(tasks) {
+        var counter = {};
+   		for(var i=0; i<tasks.length; i++){
+        	var task = tasks[i];		            
+            var workerID = task.metadata.worker.value;
+            
+            if (workerID in counter) {
+                counter[workerID]++;
+            } else {
+                counter[workerID] = 1;
+            }
+		}
+        
+        var html = '<thead><tr>';
+        html += '<th>ID</th>';
+        html += '<th>location</th>';
+        html += '<th>capacity</th>';        
+        html += '<th># of tasks</th>';    
+        html += '</tr></thead>';         
+            
+        for(var i=0; i<workerList.length; i++) {
+            var worker = workerList[i];                    
+                        
+            var wid = worker.entityId.id;
+            var num_task_instances = 0;
+            if (wid in counter) {
+                num_task_instances = counter[wid];
+            }            
+                 
+            html += '<tr>'; 
+    		html += '<td>' + wid + '</td>'; 
+    		html += '<td>' + JSON.stringify(worker.attributes.physical_location.value) + '</td>';                    
+    		html += '<td>' + JSON.stringify(worker.attributes.capacity.value) + '</td>';        
+    		html += '<td>' + num_task_instances  + '</td>';
+    		html += '</tr>';	            
+        }      
+        
+        $('#workerList').html(html);          
+		
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query task');
+    });         
+        
+     
+}
+
+function displayEdgeNodeOnMap(workerList)
+{
+    var curMap = showMap();
+        
+    var edgeIcon = L.icon({
+        iconUrl: '/img/gateway.png',
+        iconSize: [48, 48]
+    });      
+            
+    for(var i=0; i<workerList.length; i++) {
+        var worker = workerList[i];
+                
+        var latitude = worker.attributes.physical_location.value.latitude;
+        var longitude = worker.attributes.physical_location.value.longitude;
+        var edgeNodeId = worker.entityId.id;
+        
+        var marker = L.marker(new L.LatLng(latitude, longitude), {icon: edgeIcon});
+		marker.nodeID = edgeNodeId;
+        marker.addTo(curMap).bindPopup(edgeNodeId);
+	    marker.on('click', showRunningTasks);        
+    }      
 }
 
 
@@ -298,7 +347,6 @@ function updateDeviceList()
     queryReq.entities = [{id:'Device.*', isPattern: true}];           
     
     client.queryContext(queryReq).then( function(deviceList) {
-        console.log(deviceList);
         displayDeviceList(deviceList);
     }).catch(function(error) {
         console.log(error);
@@ -668,7 +716,6 @@ function showStreams()
     queryReq.entities = [{id:'.*', isPattern: true}];    	
     
     client.queryContext(queryReq).then( function(entityList) {
-        console.log(entityList);
         displayEntityList(entityList);
     }).catch(function(error) {
         console.log(error);

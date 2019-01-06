@@ -407,7 +407,7 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 	// perform the update action accordingly
 	switch updateCtxReq.UpdateAction {
 	case "UPDATE":
-		INFO.Println("===========delete========")
+		INFO.Println("===========update========")
 		INFO.Println(updateCtxReq)
 
 		for _, ctxElem := range updateCtxReq.ContextElements {

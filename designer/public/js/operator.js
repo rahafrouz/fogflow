@@ -56,7 +56,6 @@ function showOperator()
     queryReq.entities = [{type:'Operator', isPattern: true}];           
     
     client.queryContext(queryReq).then( function(operatorList) {
-        console.log(operatorList);
         displayOperatorList(operatorList);
     }).catch(function(error) {
         console.log(error);
@@ -110,8 +109,6 @@ function displayOperatorList(operators)
         var entity = operators[i];
         
         var operator = entity.attributes.operator.value;
-		
-        console.log(operator);
         
         html += '<tr>'; 
 		html += '<td>' + entity.entityId.id + '</td>';                        
@@ -274,6 +271,10 @@ function initOperatorList()
         description: "",
         parameters:[]
     },{
+        name: "facefinder",
+        description: "",
+        parameters:[]
+    },{
         name: "connectedcar",
         description: "",
         parameters:[]
@@ -351,6 +352,13 @@ function initDockerImageList()
         hwType: "X86",
         osType: "Linux",
         operatorName: "anomaly",
+        prefetched: false
+    },{
+        name: "fogflow/facefinder",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "facefinder",
         prefetched: false
     },{
         name: "fogflow/connectedcar",
@@ -607,7 +615,6 @@ function updateDockerImageList()
     queryReq.entities = [{type:'DockerImage', isPattern: true}];           
     
     client.queryContext(queryReq).then( function(imageList) {
-        console.log(imageList);
         displayDockerImageList(imageList);
     }).catch(function(error) {
         console.log(error);

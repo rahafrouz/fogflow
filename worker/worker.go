@@ -117,8 +117,8 @@ func (w *Worker) Start(config *Config) bool {
 
 func (w *Worker) Quit() {
 	w.unpublishMyself()
-	w.communicator.StopConsuming()
 	w.ticker.Stop()
+	w.communicator.StopConsuming()
 	w.executor.Shutdown()
 	INFO.Println("stop consuming the messages")
 }

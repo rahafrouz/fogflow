@@ -25,11 +25,12 @@ var client = new NGSI10Client(config.brokerURL);
 
 var myFogFunctionExamples = [
 {
-    topology: {},
-    intent: {},
-    designboard: {}
+    name: "Test",
+    topology: {"entityId":{"id":"Topology.Test","type":"Topology","isPattern":false},"attributes":{"designboard":{"type":"object","value":{"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":123,"y":-99,"type":"Task","module":null,"values":{"name":"Main","operator":"dummy","outputs":["Out"]}},{"id":2,"x":-194,"y":-97,"type":"EntityStream","module":null,"values":{"selectedtype":"Hello","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}},"template":{"type":"object","value":{"name":"Test","description":"just for a simple test","tasks":[{"name":"Main","operator":"dummy","input_streams":[{"selected_type":"Hello","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]}}}},
+    intent:  {"entityId":{"id":"ServiceIntent.13d3d575-80cc-4ff5-934b-56d32251b94b","type":"ServiceIntent","isPattern":false},"attributes":{"status":{"type":"string","value":"enabled"},"intent":{"type":"object","value":{"topology":"Test","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}}}}
 }
 ];
+
 
 addMenuItem('FogFunction', showFogFunctions);         
 addMenuItem('TaskInstance', showTaskInstances);        
@@ -66,8 +67,21 @@ function selectMenuItem(name) {
 function initFogFunctionExamples() 
 {
     for(var i=0; i<myFogFunctionExamples.length; i++) {
-        var fogfunction = myFogFunctionExamples[i];        
-        submitFogFunction(fogfunction);
+        var fogfunction = myFogFunctionExamples[i];      
+        
+        var functionCtxObj = {};    
+        functionCtxObj.entityId = {
+            id : 'FogFunction.' + fogfunction.name, 
+            type: 'FogFunction',
+            isPattern: false
+        };    
+        functionCtxObj.attributes = {};   
+        functionCtxObj.attributes.name = {type: 'string', value: fogfunction.name};    
+        functionCtxObj.attributes.topology = {type: 'object', value: fogfunction.topology};    
+        functionCtxObj.attributes.intent = {type: 'object', value: fogfunction.intent};  
+        functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};         
+          
+        submitFogFunction(functionCtxObj);
     }
 }
 
@@ -239,6 +253,9 @@ function boardScene2Topology(scene)
 
 function submitFogFunction(functionCtxObj)
 {
+    console.log("=============submit a fog function=============");
+    console.log(JSON.stringify(functionCtxObj));
+    
     var  topologyCtxObj = functionCtxObj.attributes.topology.value;
     var  intentCtxObj = functionCtxObj.attributes.intent.value;       
     
@@ -246,11 +263,11 @@ function submitFogFunction(functionCtxObj)
         console.log(data1);                 
     }).then( function(data2) {
         console.log(data2);                 
-        client.updateContext(topologyCtxObj);        
-    }).then( function(data3) {
+        client.updateContext(data2);        
+    }(topologyCtxObj)).then( function(data3) {
         console.log(data3);                 
-        client.updateContext(intentCtxObj);                        
-    }).catch( function(error) {
+        client.updateContext(data3);                        
+    }(intentCtxObj)).catch( function(error) {
         console.log('failed to record the created fog function');
     });                  
 }
@@ -363,7 +380,6 @@ function findInputType(scene, blockId)
 
 function showFogFunctions() 
 {    
-    console.log("show the list of fog functions");
     $('#info').html('list of all registered fog functions');
     
     var html = '<div style="margin-bottom: 10px;"><button id="registerFunction" type="button" class="btn btn-primary">register</button></div>';
@@ -384,7 +400,6 @@ function updateFogFunctionList()
     var queryReq = {}
     queryReq.entities = [{type:'FogFunction', isPattern: true}];
     client.queryContext(queryReq).then( function(functionList) {
-        console.log(functionList);
         displayFunctionList(functionList);
     }).catch(function(error) {
         console.log(error);
@@ -493,8 +508,6 @@ function deleteFogFunction(fogfunction)
     });  	
 }
 
-
-
 function uuid() {
     var uuid = "", i, random;
     for (i = 0; i < 32; i++) {
@@ -508,8 +521,6 @@ function uuid() {
     return uuid;
 }    
   
-
-
 function showTaskInstances() 
 {
     $('#info').html('list of running data processing tasks');
@@ -518,7 +529,6 @@ function showTaskInstances()
     queryReq.entities = [{type:'Task', isPattern: true}];    
     
     client.queryContext(queryReq).then( function(taskList) {
-        console.log(taskList);
         displayTaskList(taskList);
     }).catch(function(error) {
         console.log(error);
