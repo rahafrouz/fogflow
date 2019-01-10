@@ -33,7 +33,8 @@
         "ngsi_agent_port": 1060    
     },
     "worker": {
-        "container_autoremove": false
+        "container_autoremove": false,
+        "start_actual_task": false               
     },
     "designer": {
         "webSrvPort": 80,
