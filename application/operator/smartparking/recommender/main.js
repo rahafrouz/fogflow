@@ -98,10 +98,10 @@ function sendUpdateWithinBuffer()
 		}
 		
     	ngsi10client.updateContext(tmp.ctxObj).then( function(data) {
-		console.log('======send update======');
+    		console.log('======send update======');
     	    console.log(data);
     	}).catch(function(error) {
-		console.log(error);
+	    	console.log(error);
     	    console.log('failed to update context');
     	});  		
 	}
@@ -181,7 +181,11 @@ function handleNotify(req, ctxObjects, res)
 	console.log('handle notify');
 	for(var i = 0; i < ctxObjects.length; i++) {
 		console.log(ctxObjects[i]);
-        fogfunction.handler(ctxObjects[i], publish, query, subscribe);
+        try {
+            fogfunction.handler(ctxObjects[i], publish, query, subscribe);    
+        } catch (error) {
+            console.log(error)
+        }
 	}
 }
 

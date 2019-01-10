@@ -755,6 +755,448 @@ function displayEntityList(entities)
 	$('#content').html(html);   
 }
 
+<<<<<<< HEAD
+=======
+function showTasks() 
+{
+    $('#info').html('list of running data processing tasks');
+
+    var queryReq = {}
+    queryReq.entities = [{type:'Task', isPattern: true}];    
+    
+    client.queryContext(queryReq).then( function(taskList) {
+        console.log(taskList);
+        displayTaskList(taskList);
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query context');
+    });     
+}
+
+function displayTaskList(tasks) 
+{
+    if(tasks == null || tasks.length ==0){
+        $('#content').html('');                   
+        return
+    }
+    
+    var html = '<table class="table table-striped table-bordered table-condensed">';
+   
+    html += '<thead><tr>';
+    html += '<th>ID</th>';
+    html += '<th>Type</th>';
+    html += '<th>Attributes</th>';
+    html += '<th>DomainMetadata</th>';    
+    html += '</tr></thead>';    
+       
+    for(var i=0; i<tasks.length; i++){
+        var task = tasks[i];
+		
+        html += '<tr>'; 
+		html += '<td>' + task.entityId.id + '</td>';
+		html += '<td>' + task.entityId.type + '</td>'; 
+		html += '<td>' + JSON.stringify(task.attributes) + '</td>';        
+		html += '<td>' + JSON.stringify(task.metadata) + '</td>';
+		html += '</tr>';	
+	}
+       
+    html += '</table>'; 
+
+	$('#content').html(html);   
+}
+
+function showDockerImage() 
+{
+    $('#info').html('list of docker images in the docker registry');
+
+    var html = '<div style="margin-bottom: 10px;"><button id="registerDockerImage" type="button" class="btn btn-primary">register</button></div>';
+    html += '<div id="dockerImageList"></div>';
+
+	$('#content').html(html);   
+      
+    updateDockerImageList();       
+    
+    $( "#registerDockerImage" ).click(function() {
+        dockerImageRegistration();
+    });                
+}
+
+
+function initDockerImageList()
+{
+    var imageList = [{
+        name: "fogflow/nodejs",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "nodejs",
+        prefetched: true
+    },{
+        name: "fogflow/python",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "python",
+        prefetched: false
+    },{
+        name: "fogflow/counter",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "counter",
+        prefetched: false
+    },{
+        name: "fogflow/anomaly",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "anomaly",
+        prefetched: false
+    },{
+        name: "fogflow/sum",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "sum",
+        prefetched: false
+    },{
+        name: "fogflow/facecounter",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "facecounter",
+        prefetched: false
+    },{
+        name: "fogflow/facefinder",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "facefinder",
+        prefetched: false
+    },{
+        name: "fogflow/geohash",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "geohash",
+        prefetched: false
+    },{
+        name: "fogflow/converter",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "converter",
+        prefetched: false
+    },{
+        name: "fogflow/predictor",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "predictor",
+        prefetched: false
+    },{
+        name: "fogflow/controller",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "controller",
+        prefetched: false
+    },{
+        name: "fogflow/connectedcar",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "connectedcar",
+        prefetched: false
+    },{
+        name: "fogflow/recommender",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "recommender",
+        prefetched: false
+    },{
+        name: "fogflow/privatesite",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "privatesite",
+        prefetched: false
+    },{
+        name: "fogflow/publicsite",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "publicsite",
+        prefetched: false
+    },{
+        name: "fogflow/pushbutton",
+        tag: "latest",
+        hwType: "ARM",
+        osType: "Linux",
+        operatorName: "pushbutton",
+        prefetched: false
+    },{
+        name: "fogflow/acoustic",
+        tag: "latest",
+        hwType: "ARM",
+        osType: "Linux",
+        operatorName: "acoustic",
+        prefetched: false
+    },{
+        name: "fogflow/speaker",
+        tag: "latest",
+        hwType: "ARM",
+        osType: "Linux",
+        operatorName: "speaker",
+        prefetched: false
+    },{
+        name: "fogflow/pushbutton",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "pushbutton",
+        prefetched: false
+    },{
+        name: "fogflow/acoustic",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "acoustic",
+        prefetched: false
+    },{
+        name: "fogflow/speaker",
+        tag: "latest",
+        hwType: "X86",
+        osType: "Linux",
+        operatorName: "speaker",
+        prefetched: false
+    }
+    ];
+
+    var queryReq = {}
+    queryReq.entities = [{type:'DockerImage', isPattern: true}];               
+    client.queryContext(queryReq).then( function(existingImageList) {
+        if (existingImageList.length == 0) {
+            for(var i=0; i<imageList.length; i++) {
+                addDockerImage(imageList[i]);
+            }            
+        }
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query the image list');
+    }); 
+}
+
+function addDockerImage(image) 
+{    
+    //register a new docker image
+    var newImageObject = {};
+
+    newImageObject.entityId = {
+        id : image.name + '.' + uuid(), 
+        type: 'DockerImage',
+        isPattern: false
+    };
+
+    newImageObject.attributes = {};   
+    newImageObject.attributes.image = {type: 'string', value: image.name};        
+    newImageObject.attributes.tag = {type: 'string', value: image.tag};    
+    newImageObject.attributes.hwType = {type: 'string', value: image.hwType};      
+    newImageObject.attributes.osType = {type: 'string', value: image.osType};          
+    newImageObject.attributes.operator = {type: 'string', value: image.operatorName};      
+    newImageObject.attributes.prefetched = {type: 'boolean', value: image.prefetched};                      
+    
+    newImageObject.metadata = {};    
+    newImageObject.metadata.operator = {
+        type: 'string',
+        value: image.operatorName
+    };               
+
+    client.updateContext(newImageObject).then( function(data) {
+        console.log(data);
+    }).catch( function(error) {
+        console.log('failed to register the new device object');
+    });      
+    
+}
+
+function dockerImageRegistration()
+{
+    $('#info').html('to register a new docker image');
+    
+    var html = '<div id="dockerRegistration" class="form-horizontal"><fieldset>';                 
+    
+    html += '<div class="control-group"><label class="control-label" for="input01">Image(*)</label>';
+    html += '<div class="controls"><input type="text" class="input-xlarge" id="dockerImageName">';
+    html += '</div></div>';
+    
+    html += '<div class="control-group"><label class="control-label" for="input01">Tag(*)</label>';
+    html += '<div class="controls"><input type="text" class="input-xlarge" id="imageTag" placeholder="latest">';
+    html += '</div></div>';    
+    
+    html += '<div class="control-group"><label class="control-label" for="input01">HardwareType(*)</label>';
+    html += '<div class="controls"><select id="hwType"><option>X86</option><option>ARM</option></select></div>'
+    html += '</div>';    
+    
+    html += '<div class="control-group"><label class="control-label" for="input01">OSType(*)</label>';
+    html += '<div class="controls"><select id="osType"><option>Linux</option><option>Windows</option></select></div>'
+    html += '</div>';    
+
+    html += '<div class="control-group"><label class="control-label" for="input01">Operator(*)</label>';
+    html += '<div class="controls"><input type="text" class="input-xlarge" id="OperatorName">';
+    html += '</div></div>';    
+
+    html += '<div class="control-group"><label class="control-label" for="optionsCheckbox">Prefetched</label>';
+    html += '<div class="controls"> <label class="checkbox"><input type="checkbox" id="Prefetched" value="option1">';
+    html += 'docker image must be fetched by the platform in advance';
+    html += '</label></div>';
+    html += '</div>';        
+
+    
+    html += '<div class="control-group"><label class="control-label" for="input01"></label>';
+    html += '<div class="controls"><button id="submitRegistration" type="button" class="btn btn-primary">Register</button>';
+    html += '</div></div>';   
+       
+    html += '</fieldset></div>';
+
+	$('#content').html(html);          
+        
+    // associate functions to clickable buttons
+    $('#submitRegistration').click(registerDockerImage);  
+}
+
+
+function registerDockerImage() 
+{    
+    console.log('register a new docker image'); 
+
+    // take the inputs    
+    var image = $('#dockerImageName').val();
+    console.log(image);
+    
+    var tag = $('#imageTag').val();
+    if (tag == '') {
+        tag = 'latest';
+    }
+    
+    console.log(tag);    
+    
+    var hwType = $('#hwType option:selected').val();
+    console.log(hwType);
+    
+    var osType = $('#osType option:selected').val();
+    console.log(osType);    
+    
+    var operatorName = $('#OperatorName').val();
+    console.log(operatorName);        
+    
+    var prefetched = document.getElementById('Prefetched').checked;
+    console.log(prefetched);        
+    
+               
+    if( image == '' || tag == '' || hwType == '' || osType == '' || operatorName == '' ) {
+        alert('please provide the required inputs');
+        return;
+    }    
+
+    //register a new docker image
+    var newImageObject = {};
+
+    newImageObject.entityId = {
+        id : image + ':' + tag, 
+        type: 'DockerImage',
+        isPattern: false
+    };
+
+    newImageObject.attributes = {};   
+    newImageObject.attributes.image = {type: 'string', value: image};        
+    newImageObject.attributes.tag = {type: 'string', value: tag};    
+    newImageObject.attributes.hwType = {type: 'string', value: hwType};      
+    newImageObject.attributes.osType = {type: 'string', value: osType};          
+    newImageObject.attributes.operator = {type: 'string', value: operatorName};  
+    
+    if (prefetched == true) {
+        newImageObject.attributes.prefetched = {type: 'boolean', value: true};                      
+    } else {
+        newImageObject.attributes.prefetched = {type: 'boolean', value: false};                      
+    }
+            
+    newImageObject.metadata = {};    
+    newImageObject.metadata.operator = {
+        type: 'string',
+        value: operatorName
+    };               
+
+    client.updateContext(newImageObject).then( function(data) {
+        console.log(data);
+        
+        // show the updated image list
+        showDockerImage();
+    }).catch( function(error) {
+        console.log('failed to register the new device object');
+    });      
+    
+}
+
+
+function updateDockerImageList()
+{
+    var queryReq = {}
+    queryReq.entities = [{type:'DockerImage', isPattern: true}];           
+    
+    client.queryContext(queryReq).then( function(imageList) {
+        console.log(imageList);
+        displayDockerImageList(imageList);
+    }).catch(function(error) {
+        console.log(error);
+        console.log('failed to query context');
+    });    
+}
+
+function displayDockerImageList(images) 
+{
+    if(images == null || images.length == 0){
+        $('#dockerImageList').html('');           
+        return        
+    }
+    
+    var html = '<table class="table table-striped table-bordered table-condensed">';
+   
+    html += '<thead><tr>';
+    html += '<th>Operator</th>';    
+    html += '<th>Image</th>';
+    html += '<th>Tag</th>';
+    html += '<th>Hardware Type</th>';
+    html += '<th>OS Type</th>';    
+    html += '<th>Prefetched</th>';        
+    html += '</tr></thead>';    
+       
+    for(var i=0; i<images.length; i++){
+        var dockerImage = images[i];
+		
+        html += '<tr>'; 
+		html += '<td>' + dockerImage.attributes.operator.value + '</td>';                
+		html += '<td>' + dockerImage.attributes.image.value + '</td>';                
+		html += '<td>' + dockerImage.attributes.tag.value + '</td>';        
+		html += '<td>' + dockerImage.attributes.hwType.value + '</td>';                
+		html += '<td>' + dockerImage.attributes.osType.value + '</td>';  
+        
+        if (dockerImage.attributes.prefetched.value == true) {
+		    html += '<td><font color="red"><b>' + dockerImage.attributes.prefetched.value + '</b></font></td>';                                            
+        } else {
+		    html += '<td>' + dockerImage.attributes.prefetched.value + '</td>';                                            
+        }
+                              
+		html += '</tr>';	                        
+	}
+       
+    html += '</table>';  
+    
+	$('#dockerImageList').html(html);      
+}
+
+>>>>>>> master
 });
 
 

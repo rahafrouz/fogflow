@@ -76,15 +76,41 @@ def publishMySelf():
     deviceCtxObj['entityId']['isPattern'] = False
     
     deviceCtxObj['attributes'] = {}
+<<<<<<< HEAD
     deviceCtxObj['attributes']['url'] = {'type': 'string', 'value': 'http://' + profile['myIP'] + ':' + str(profile['myPort']) + '/image'}
+=======
+    deviceCtxObj['attributes']['url'] = {'type': 'string', 'value': 'http://192.168.1.119/image'}
+>>>>>>> master
     deviceCtxObj['attributes']['iconURL'] = {'type': 'string', 'value': profile['iconURL']}    
     
     deviceCtxObj['metadata'] = {}
     deviceCtxObj['metadata']['location'] = {'type': 'point', 'value': {'latitude': profile['location']['latitude'], 'longitude': profile['location']['longitude'] }}
+<<<<<<< HEAD
     deviceCtxObj['metadata']['cameraID'] = {'type': 'string', 'value': profile['id']}
     
     updateContext(brokerURL, deviceCtxObj)
 
+=======
+    
+    updateContext(brokerURL, deviceCtxObj)
+
+    # stream entity
+    streamCtxObj = {}
+    streamCtxObj['entityId'] = {}
+    streamCtxObj['entityId']['id'] = 'Stream.' + profile['type'] + '.' + profile['id']
+    streamCtxObj['entityId']['type'] = profile['type']        
+    streamCtxObj['entityId']['isPattern'] = False
+    
+    streamCtxObj['attributes'] = {}
+    streamCtxObj['attributes']['url'] = {'type': 'string', 'value': 'http://192.168.1.119/image'}
+    
+    streamCtxObj['metadata'] = {}
+    streamCtxObj['metadata']['location'] = {'type': 'point', 'value': {'latitude': profile['location']['latitude'], 'longitude': profile['location']['longitude'] }}
+    streamCtxObj['metadata']['cameraID'] = {'type': 'string', 'value': profile['id']}
+    
+    updateContext(brokerURL, streamCtxObj)
+
+>>>>>>> master
 
 def unpublishMySelf():
     global profile, brokerURL
@@ -97,7 +123,19 @@ def unpublishMySelf():
     deviceCtxObj['entityId']['isPattern'] = False
     
     deleteContext(brokerURL, deviceCtxObj)
+<<<<<<< HEAD
    
+=======
+    
+    # stream entity
+    streamCtxObj = {}
+    streamCtxObj['entityId'] = {}
+    streamCtxObj['entityId']['id'] = 'Stream.' + profile['type'] + '.' + profile['id']
+    streamCtxObj['entityId']['type'] = profile['type']        
+    streamCtxObj['entityId']['isPattern'] = False
+    
+    deleteContext(brokerURL, streamCtxObj)    
+>>>>>>> master
 
 def object2Element(ctxObj):
     ctxElement = {}
@@ -181,9 +219,15 @@ def run():
     #announce myself        
     publishMySelf()
 
+<<<<<<< HEAD
     print('http server is listening on port ', profile["myPort"])  
     signal.signal(signal.SIGINT, signal_handler)  
     server_address = ('0.0.0.0', profile['myPort'])
+=======
+    print('http server is listening on port 80')  
+    signal.signal(signal.SIGINT, signal_handler)  
+    server_address = ('0.0.0.0', 80)
+>>>>>>> master
     httpd = HTTPServer(server_address, RequestHandler)
     httpd.serve_forever()
   
