@@ -1,2 +1,2 @@
 npm install
-docker build -t "fogflow/designer"  .
+docker build -t "fogflow/designer:intent"  .
