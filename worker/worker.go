@@ -116,11 +116,17 @@ func (w *Worker) Start(config *Config) bool {
 }
 
 func (w *Worker) Quit() {
+	INFO.Println("unregister myself")
 	w.unpublishMyself()
+
+	INFO.Println("stop the timer")
 	w.ticker.Stop()
-	w.communicator.StopConsuming()
-	w.executor.Shutdown()
+
 	INFO.Println("stop consuming the messages")
+	w.communicator.StopConsuming()
+
+	INFO.Println("to stop the worker")
+	w.executor.Shutdown()
 }
 
 func (w *Worker) publishMyself() error {

@@ -10,10 +10,10 @@
     },
     "geohash_precision": 2,     
     "logging":{
-        "info":"discard",
+        "info":"stdout",
         "error":"stderr",
-        "protocol": "discard",
-        "debug": "discard"
+        "protocol": "stdout",
+        "debug": "stdout"
     },
     "discovery": {
         "port": 443,

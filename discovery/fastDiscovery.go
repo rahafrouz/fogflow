@@ -599,10 +599,9 @@ func (fd *FastDiscovery) getRegisteredEntity(w rest.ResponseWriter, r *rest.Requ
 
 func (fd *FastDiscovery) deleteRegisteredEntity(w rest.ResponseWriter, r *rest.Request) {
 	var eid = r.PathParam("eid")
-
-	fd.deleteRegistration(eid)
-
 	w.WriteHeader(200)
+
+	go fd.deleteRegistration(eid)
 }
 
 func (fd *FastDiscovery) getSubscription(w rest.ResponseWriter, r *rest.Request) {

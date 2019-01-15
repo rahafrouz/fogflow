@@ -34,18 +34,14 @@ type Communicator struct {
 
 	conn *amqp.Connection
 
-	stopChan chan int
+	consuming bool
+	stopChan  chan int
 }
 
-var RetryClosure = func() func() {
+var RetryClosure = func() {
 	retryIn := 2 // retry after 2 seconds
-	return func() {
-		durationString := fmt.Sprintf("%vs", retryIn)
-		duration, _ := time.ParseDuration(durationString)
-
-		log.Printf("Retrying in %v seconds", retryIn)
-		time.Sleep(duration)
-	}
+	log.Printf("Retrying in %v seconds", retryIn)
+	time.Sleep(time.Second)
 }
 
 func NewCommunicator(cnf *MessageBusConfig) *Communicator {
@@ -55,7 +51,7 @@ func NewCommunicator(cnf *MessageBusConfig) *Communicator {
 // StartConsuming enters a loop and waits for incoming messages
 func (communicator *Communicator) StartConsuming(consumerTag string, taskProcessor TaskProcessor) (bool, error) {
 	if communicator.retryFunc == nil {
-		communicator.retryFunc = RetryClosure()
+		communicator.retryFunc = RetryClosure
 	}
 
 	channel, queue, err := communicator.openSubscriber()
@@ -66,10 +62,9 @@ func (communicator *Communicator) StartConsuming(consumerTag string, taskProcess
 
 	if err != nil {
 		communicator.retryFunc()
-		return communicator.retry, err // retry true
+		communicator.consuming = false
+		return communicator.retry, err
 	}
-
-	communicator.retryFunc = RetryClosure()
 
 	communicator.stopChan = make(chan int)
 
@@ -95,6 +90,7 @@ func (communicator *Communicator) StartConsuming(consumerTag string, taskProcess
 	}
 
 	log.Print("[*] Waiting for messages. To exit press CTRL+C")
+	communicator.consuming = true
 
 	if err := communicator.consume(deliveries, taskProcessor); err != nil {
 		return communicator.retry, err // retry true
@@ -107,17 +103,20 @@ func (communicator *Communicator) StartConsuming(consumerTag string, taskProcess
 func (communicator *Communicator) StopConsuming() {
 	// Do not retry from now on
 	communicator.retry = false
+
 	// Notifying the stop channel stops consuming of messages
-	communicator.stopChan <- 1
+	if communicator.consuming == true {
+		communicator.stopChan <- 1
+	}
 }
 
 // Publish places a new message on the default queue
 func (communicator *Communicator) Publish(msg *SendMessage) error {
 	channel, confirmsChan, err := communicator.openPublisher()
-	defer channel.Close()
 	if err != nil {
 		return err
 	}
+	defer channel.Close()
 
 	message, err := json.Marshal(msg)
 	if err != nil {
