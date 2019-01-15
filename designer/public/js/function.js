@@ -598,6 +598,8 @@ function displayTaskList(tasks)
    
     html += '<thead><tr>';
     html += '<th>ID</th>';
+    html += '<th>Service</th>';
+    html += '<th>Task</th>';      
     html += '<th>Type</th>';
     html += '<th>Attributes</th>';
     html += '<th>DomainMetadata</th>';    
@@ -609,6 +611,8 @@ function displayTaskList(tasks)
         html += '<tr>'; 
 		html += '<td>' + task.entityId.id + '</td>';
 		html += '<td>' + task.entityId.type + '</td>'; 
+        html += '<td>' + task.attributes.service.value + '</td>';		
+        html += '<td>' + task.attributes.task.value + '</td>';        
 		html += '<td>' + JSON.stringify(task.attributes) + '</td>';        
 		html += '<td>' + JSON.stringify(task.metadata) + '</td>';
 		html += '</tr>';	

@@ -342,6 +342,8 @@ function displayTaskList(tasks)
    
     html += '<thead><tr>';
     html += '<th>ID</th>';
+    html += '<th>Service</th>';
+    html += '<th>Task</th>';
     html += '<th>worker</th>';
     html += '<th>port</th>';	
     html += '<th>status</th>';		
@@ -351,6 +353,8 @@ function displayTaskList(tasks)
         var task = tasks[i];
         html += '<tr>';
         html += '<td>' + task.attributes.id.value + '</td>';		
+        html += '<td>' + task.attributes.service.value + '</td>';		
+        html += '<td>' + task.attributes.task.value + '</td>';		        
 		html += '<td>' + task.attributes.worker.value + '</td>';
 		html += '<td>' + task.attributes.port.value + '</td>';	
 		

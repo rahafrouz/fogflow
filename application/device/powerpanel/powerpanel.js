@@ -30,7 +30,7 @@ discovery.findNearbyIoTBroker(profile.location, 1).then( function(brokers) {
         // generating data observations periodically
         timer = setInterval(function(){ 
             updateContext();
-        }, 1000);    
+        }, 2000);    
 
         // register my device profile by sending a device update
         registerDevice();
