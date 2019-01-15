@@ -1,14 +1,12 @@
-docker push  fogflow/discovery
+docker push  fogflow/discovery:intent
 
-docker push  fogflow/broker
-docker push  fogflow/broker:arm
+docker push  fogflow/broker:intent
 
-docker push  fogflow/master
+docker push  fogflow/master:intent
 
-docker push  fogflow/worker
-docker push  fogflow/worker:arm
+docker push  fogflow/worker:intent
 
-docker push  fogflow/designer
+docker push  fogflow/designer:intent
 
 
 
