@@ -77,7 +77,7 @@ func (tb *ThinBroker) Stop() {
 	// cancel all subscriptions that have been issues to outside
 }
 
-func (tb *ThinBroker) OnTimer() {
+func (tb *ThinBroker) OnTimer() { // for every 2 second
 	tb.subscriptions_lock.Lock()
 	remainItems := tb.tmpNGSI10NotifyCache
 	tb.tmpNGSI10NotifyCache = make([]string, 0)
@@ -100,12 +100,21 @@ func (tb *ThinBroker) OnTimer() {
 	}
 
 	// send heartbeat to IoT Discovery
-	tb.sendHeartBeat()
+	if tb.counter >= 5 {
+		//every 10 seconds
+		tb.sendHeartBeat()
+		tb.counter = 0
+	}
+	tb.counter++
+
 }
 
 func (tb *ThinBroker) sendHeartBeat() {
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
-	client.SendHeartBeat(&tb.myProfile)
+	err := client.SendHeartBeat(&tb.myProfile)
+	if err != nil {
+		ERROR.Println("failed to send my heartbeat info")
+	}
 }
 
 func (tb *ThinBroker) registerMyself() bool {
@@ -907,6 +916,8 @@ func (tb *ThinBroker) handleNGSI9Notify(mainSubID string, notifyContextAvailabil
 }
 
 func (tb *ThinBroker) registerContextElement(element *ContextElement) {
+	DEBUG.Printf("======START TO REGISTER an element %+v\n", element)
+
 	registration := ContextRegistration{}
 
 	entities := make([]EntityId, 0)
@@ -930,6 +941,8 @@ func (tb *ThinBroker) registerContextElement(element *ContextElement) {
 	registerCtxReq.RegistrationId = ""
 	registerCtxReq.ContextRegistrations = []ContextRegistration{registration}
 	registerCtxReq.Duration = "PT10M"
+
+	DEBUG.Printf("======send out registeration %+v\n", registerCtxReq)
 
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	_, err := client.RegisterContext(&registerCtxReq)

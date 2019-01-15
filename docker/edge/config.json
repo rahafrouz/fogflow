@@ -3,7 +3,7 @@
     "external_hostip": "127.0.0.1",
     "internal_hostip": "127.0.0.1",
     "physical_location":{
-        "longitude": 139.709059,
+        "longitude": 138.709059,
         "latitude": 35.692221
     },
     "geohash_precision": 2,

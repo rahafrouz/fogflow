@@ -29,9 +29,7 @@ func main() {
 	startAgent(&config)
 	sid := subscribe(&config)
 
-	time.Sleep(10 * time.Second)
-
-	StartTime = time.Now()
+	time.Sleep(2 * time.Second)
 
 	// create the input entities
 	for i := 1; i <= *num; i++ {
@@ -68,12 +66,18 @@ func HandleNotifyContext(notifyCtxReq *NotifyContextRequest) {
 		ctxObj := CtxElement2Object(&(v.ContextElement))
 		//INFO.Println(ctxObj)
 
+		if total_num == 0 {
+			StartTime = time.Now()
+			total_num = 1
+			continue
+		}
+
 		if ctxObj.Entity.Type == "Task" {
 			total_num = total_num + 1
 		}
 
 		var delta = (time.Now().UnixNano() - StartTime.UnixNano()) / int64(time.Millisecond)
-		var throughput = total_num * 1000 / delta
+		var throughput = (total_num - 1) * 1000 / delta
 
 		fmt.Printf("total %d, delta %d, throughput: %d \r\n", total_num, delta, throughput)
 
@@ -132,8 +136,8 @@ func unsubscribe(config *Config, sid string) {
 func createEntity(config *Config, i int) {
 	ctxObj := ContextObject{}
 
-	ctxObj.Entity.ID = "Car." + strconv.Itoa(i)
-	ctxObj.Entity.Type = "Hello"
+	ctxObj.Entity.ID = "Temperature." + strconv.Itoa(i)
+	ctxObj.Entity.Type = "Temperature"
 	ctxObj.Entity.IsPattern = false
 
 	ctxObj.Attributes = make(map[string]ValueObject)
@@ -153,7 +157,7 @@ func createEntity(config *Config, i int) {
 
 func deleteEntity(config *Config, i int) {
 	eid := EntityId{}
-	eid.ID = "Car." + strconv.Itoa(i)
+	eid.ID = "Temperature." + strconv.Itoa(i)
 
 	client := NGSI10Client{IoTBrokerURL: config.UpdateBrokerURL}
 	err := client.DeleteContext(&eid)

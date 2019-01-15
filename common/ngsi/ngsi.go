@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 type SiteInfo struct {
@@ -83,11 +85,46 @@ type ContextMetadata struct {
 	Value interface{} `json:"value"`
 }
 
+/*
+func (metadata *ContextMetadata) UnmarshalJSON(b []byte) error {
+	fmt.Println("====== test 1========")
+
+	err := json.Unmarshal(b, metadata)
+
+	fmt.Println("====== test ========")
+	fmt.Printf("%+v\n", metadata)
+
+	if err == nil {
+		switch strings.ToLower(metadata.Type) {
+		case "circle":
+			var temp Circle
+			if err = mapstructure.Decode(metadata.Value, &temp); err == nil {
+				(*metadata).Value = temp
+			}
+
+		case "point":
+			var temp Point
+			if err = mapstructure.Decode(metadata.Value, &temp); err == nil {
+				(*metadata).Value = temp
+			}
+
+		case "polygon":
+			var temp Polygon
+			if err = mapstructure.Decode(metadata.Value, &temp); err == nil {
+				(*metadata).Value = temp
+			}
+		}
+	}
+
+	return err
+}
+*/
+
 func (metadata *ContextMetadata) UnmarshalJSON(b []byte) error {
 	type InternalContextMetadata struct {
-		Name  string          `json:"name"`
-		Type  string          `json:"type,omitempty"`
-		Value json.RawMessage `json:"value"`
+		Name  string      `json:"name"`
+		Type  string      `json:"type,omitempty"`
+		Value interface{} `json:"value"`
 	}
 
 	m := InternalContextMetadata{}
@@ -97,55 +134,55 @@ func (metadata *ContextMetadata) UnmarshalJSON(b []byte) error {
 		(*metadata).Name = m.Name
 		(*metadata).Type = m.Type
 
-		switch m.Type {
+		switch strings.ToLower(m.Type) {
 		case "circle":
 			var temp Circle
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
+			if err = mapstructure.Decode(m.Value, &temp); err == nil {
 				(*metadata).Value = temp
 			}
 
 		case "point":
 			var temp Point
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
+			if err = mapstructure.Decode(m.Value, &temp); err == nil {
 				(*metadata).Value = temp
 			}
 
 		case "polygon":
 			var temp Polygon
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
+			if err = mapstructure.Decode(m.Value, &temp); err == nil {
 				(*metadata).Value = temp
 			}
+			/*
+				case "integer":
+					var temp int
+					if err = json.Unmarshal(m.Value, &temp); err == nil {
+						(*metadata).Value = temp
+					}
 
-		case "integer":
-			var temp int
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
-				(*metadata).Value = temp
-			}
+				case "float":
+					var temp float64
+					if err = json.Unmarshal(m.Value, &temp); err == nil {
+						(*metadata).Value = temp
+					}
 
-		case "float":
-			var temp float64
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
-				(*metadata).Value = temp
-			}
+				case "boolean":
+					var temp bool
+					if err = json.Unmarshal(m.Value, &temp); err == nil {
+						(*metadata).Value = temp
+					}
 
-		case "boolean":
-			var temp bool
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
-				(*metadata).Value = temp
-			}
+				case "string":
+					var temp string
+					if err = json.Unmarshal(m.Value, &temp); err == nil {
+						(*metadata).Value = temp
+					}
 
-		case "string":
-			var temp string
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
-				(*metadata).Value = temp
-			}
-
-		case "object":
-			var temp map[string]interface{}
-			if err = json.Unmarshal(m.Value, &temp); err == nil {
-				(*metadata).Value = temp
-			}
-
+				case "object":
+					var temp map[string]interface{}
+					if err = json.Unmarshal(m.Value, &temp); err == nil {
+						(*metadata).Value = temp
+					}
+			*/
 		default:
 			(*metadata).Value = m.Value
 		}
@@ -168,6 +205,7 @@ type OrionContextAttribute struct {
 	Metadata []ContextMetadata `json:"metadata,omitempty"`
 }
 
+/*
 func (pAttr *ContextAttribute) UnmarshalJSON(b []byte) error {
 	type InternalAttributeObject struct {
 		Name     string            `json:"name"`
@@ -225,6 +263,8 @@ func (pAttr *ContextAttribute) UnmarshalJSON(b []byte) error {
 
 	return err
 }
+
+*/
 
 type EntityId struct {
 	ID        string `json:"id"`
@@ -314,16 +354,6 @@ func (ce *ContextElement) IsEmpty() bool {
 		return false
 	}
 }
-
-/*
-func (ce *ContextElement) Clone(orig *ContextElement) {
-	ce.Entity.ID = orig.Entity.ID
-	ce.Entity.Type = orig.Entity.Type
-	ce.Entity.IsPattern = orig.Entity.IsPattern
-
-	ce.AttributeDomainName = orig.AttributeDomainName
-}
-*/
 
 func (ce *ContextElement) GetScope() OperationScope {
 	updateScope := OperationScope{}

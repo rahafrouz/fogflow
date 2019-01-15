@@ -245,6 +245,12 @@ func (flow *FogFlow) MetadataDrivenTaskOrchestration(subID string, entityAction 
 		}
 
 	case "DELETE":
+		_, exist := inputSubscription.ReceivedEntityRegistrations[entityID]
+		if exist == false {
+			INFO.Println("entity registration has not arrived yet")
+			return nil
+		}
+
 		if flow.checkInputAvailability() == true {
 			return flow.removeExecutionPlan(entityID, inputSubscription)
 		}
@@ -413,6 +419,7 @@ func (flow *FogFlow) expandExecutionPlan(entityID string, inputSubscription *Inp
 }
 
 func (flow *FogFlow) removeExecutionPlan(entityID string, inputSubscription *InputSubscription) []*DeploymentAction {
+
 	groups := flow.getRelevantGroups(inputSubscription, entityID)
 
 	DEBUG.Printf("removing groups = %+v\r\n", groups)
@@ -479,11 +486,6 @@ func (flow *FogFlow) removeExecutionPlan(entityID string, inputSubscription *Inp
 
 func (flow *FogFlow) getLocationOfInputs(taskID string) []Point {
 	locations := make([]Point, 0)
-
-	INFO.Println("taskID", taskID)
-
-	//hashID := strings.TrimPrefix(taskID, flow.Intent.TaskObject.Name+".")
-	//INFO.Println("hasID of this task instance in the table = ", hashID)
 
 	task := flow.ExecutionPlan[taskID]
 
@@ -754,11 +756,34 @@ func (tMgr *TaskMgr) removeTaskIntent(taskIntent *TaskIntent) {
 	INFO.Printf("remove the task intent")
 	INFO.Println(taskIntent)
 
-	// remove this fog function from the function map
-	uID := taskIntent.ServiceName + "." + taskIntent.TaskObject.Name
+	fID := taskIntent.ServiceName + "." + taskIntent.TaskObject.Name
+
+	// remove all related subscriptions to IoT Discovery
+	sidList := make([]string, 0)
+
+	tMgr.subID2FogFunc_lock.Lock()
+
+	for subscriptionID, functionID := range tMgr.subID2FogFunc {
+		if functionID == fID {
+			sidList = append(sidList, subscriptionID)
+		}
+	}
+
+	tMgr.subID2FogFunc_lock.Unlock()
+
+	// issue unscriptions
+	for _, sid := range sidList {
+		tMgr.master.unsubscribeContextAvailability(sid)
+	}
+
+	// send commands to terminate all existing task instances
+	var fogflow = tMgr.fogFlows[fID]
+	for _, scheduledTaskInstance := range fogflow.DeploymentPlan {
+		tMgr.master.TerminateTask(scheduledTaskInstance)
+	}
 
 	tMgr.fogFlows_lock.Lock()
-	delete(tMgr.fogFlows, uID)
+	delete(tMgr.fogFlows, fID)
 	tMgr.fogFlows_lock.Unlock()
 }
 
@@ -783,7 +808,9 @@ func (tMgr *TaskMgr) selector2Subscription(inputSelector *InputStreamConfig, geo
 	}
 
 	// apply the required geoscope
-	availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, geoscope)
+	if inputSelector.Scoped == true {
+		availabilitySubscription.Restriction.Scopes = append(availabilitySubscription.Restriction.Scopes, geoscope)
+	}
 
 	DEBUG.Printf("issue NGSI9 subscription: %+v\r\n", availabilitySubscription)
 

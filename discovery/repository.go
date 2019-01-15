@@ -57,17 +57,23 @@ func (er *EntityRepository) Close() {
 	INFO.Println("close the connection to postgresql")
 }
 
-func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextRegistration) {
+//
+// update the registration in the repository and also
+// return a flag to indicate if there is anything in the repository before
+//
+func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextRegistration) bool {
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
 
 	statements := make([]string, 0)
 
+	var newEntityFlag = true
+
 	// update the entity table
 	queryStatement := fmt.Sprintf("SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = '%s'", entity.ID)
 	rows, err := er.query(queryStatement)
 	if err != nil {
-		return
+		return newEntityFlag
 	}
 	if rows.Next() == false {
 		// insert new entity
@@ -75,6 +81,9 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 			entity.ID, entity.Type, entity.IsPattern,
 			registration.ProvidingApplication)
 		statements = append(statements, insertEntity)
+	} else {
+		// this entity already exists, to indicate whethere we need to retrieve back the latest and combined view for this registration
+		newEntityFlag = false
 	}
 	rows.Close()
 
@@ -200,6 +209,8 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 
 	// apply the update once for the entire registration request, within a transaction
 	er.exec(statements)
+
+	return newEntityFlag
 }
 
 func (er *EntityRepository) queryEntities(entities []EntityId, attributes []string, restriction Restriction) map[string][]EntityId {
@@ -517,11 +528,14 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 		results.Close()
 
 		// query all geo-related metadatas that belong to those entities
-		queryStatement = fmt.Sprintf("SELECT name, ST_AsText(box) FROM geo_box_tab WHERE geo_box_tab.eid = '%s';", eid)
+		queryStatement = fmt.Sprintf("SELECT name, type, ST_AsText(box) FROM geo_box_tab WHERE geo_box_tab.eid = '%s';", eid)
 		results, _ = er.query(queryStatement)
 		for results.Next() {
 			var name, mtype, box string
-			results.Scan(&name, &box)
+			results.Scan(&name, &mtype, &box)
+
+			DEBUG.Println("-------check the retrieve from the database------")
+			DEBUG.Printf("%s, %s, %+v \n", name, mtype, box)
 
 			metadata := ContextMetadata{}
 			metadata.Name = name
@@ -537,14 +551,11 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 					point.Longitude = longitude
 
 					metadata.Value = point
-				} else {
-					metadata.Type = "string"
-					metadata.Value = box
 				}
 
+			case "polygon":
+				metadata.Value = box
 			}
-
-			metadata.Value = box
 
 			registeredMetadatas = append(registeredMetadatas, metadata)
 		}
@@ -571,12 +582,7 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 				circle.Radius = radius
 
 				metadata.Value = circle
-			} else {
-				metadata.Type = "string"
-				metadata.Value = fmt.Sprintf("%s, %f", center, radius)
 			}
-
-			metadata.Value = circle
 
 			registeredMetadatas = append(registeredMetadatas, metadata)
 		}
@@ -595,6 +601,8 @@ func (er *EntityRepository) query(statement string) (*sql.Rows, error) {
 }
 
 func (er *EntityRepository) exec(statements []string) {
+	DEBUG.Println("===========SQL============")
+	DEBUG.Println(statements)
 	for _, statement := range statements {
 		er.db.Exec(statement)
 	}

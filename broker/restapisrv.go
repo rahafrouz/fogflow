@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -60,7 +61,7 @@ func (apisrv *RestApiSrv) Start(cfg *Config, broker *ThinBroker) {
 	api.SetApp(router)
 
 	go func() {
-		INFO.Printf("Starting IoT Broker on %d\n", cfg.Broker.Port)
+		fmt.Printf("Starting IoT Broker on %d\n", cfg.Broker.Port)
 		panic(http.ListenAndServe(":"+strconv.Itoa(cfg.Broker.Port), api.MakeHandler()))
 	}()
 }

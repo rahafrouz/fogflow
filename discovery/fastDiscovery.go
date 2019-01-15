@@ -151,13 +151,17 @@ func (fd *FastDiscovery) matchingWithSubscription(registration *ContextRegistrat
 func (fd *FastDiscovery) updateRegistration(registReq *RegisterContextRequest) {
 	for _, registration := range registReq.ContextRegistrations {
 		for _, entity := range registration.EntityIdList {
+			var updatedRegistration *ContextRegistration
 
-			INFO.Printf("registration:%+v\r\n", entity)
+			newEntityFlag := fd.repository.updateEntity(entity, &registration)
 
-			fd.repository.updateEntity(entity, &registration)
+			if newEntityFlag == false {
+				updatedRegistration = fd.repository.retrieveRegistration(entity.ID)
+			} else {
+				updatedRegistration = &registration
+			}
 
 			// inform the associated subscribers after updating the repository
-			updatedRegistration := fd.repository.retrieveRegistration(entity.ID)
 			if updatedRegistration != nil {
 				fd.notifySubscribers(updatedRegistration, "UPDATE")
 			}
@@ -165,16 +169,13 @@ func (fd *FastDiscovery) updateRegistration(registReq *RegisterContextRequest) {
 	}
 }
 
-func (fd *FastDiscovery) deleteRegistration(registration *ContextRegistration) {
-	for _, entity := range registration.EntityIdList {
-		// notify the affected subscribers before deleting the entity
-		registration := fd.repository.retrieveRegistration(entity.ID)
-		if registration != nil {
-			fd.notifySubscribers(registration, "DELETE")
-		}
-
-		fd.repository.deleteEntity(entity.ID)
+func (fd *FastDiscovery) deleteRegistration(eid string) {
+	registration := fd.repository.retrieveRegistration(eid)
+	if registration != nil {
+		fd.notifySubscribers(registration, "DELETE")
 	}
+
+	fd.repository.deleteEntity(eid)
 }
 
 func (fd *FastDiscovery) SiteDiscoverContextAvailability(w rest.ResponseWriter, r *rest.Request) {
@@ -504,11 +505,12 @@ func (fd *FastDiscovery) sendNotify(subID string, subscriberURL string, entityMa
 
 	client := &http.Client{}
 	resp, err2 := client.Do(req)
-	defer resp.Body.Close()
 	if err2 != nil {
 		ERROR.Println(err2)
 		return
 	}
+
+	defer resp.Body.Close()
 
 	text, _ := ioutil.ReadAll(resp.Body)
 
@@ -598,12 +600,7 @@ func (fd *FastDiscovery) getRegisteredEntity(w rest.ResponseWriter, r *rest.Requ
 func (fd *FastDiscovery) deleteRegisteredEntity(w rest.ResponseWriter, r *rest.Request) {
 	var eid = r.PathParam("eid")
 
-	DEBUG.Printf("delete the context availability %s\r\n", eid)
-
-	registration := fd.repository.retrieveRegistration(eid)
-	if registration != nil {
-		fd.deleteRegistration(registration)
-	}
+	fd.deleteRegistration(eid)
 
 	w.WriteHeader(200)
 }

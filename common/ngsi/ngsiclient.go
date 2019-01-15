@@ -610,6 +610,9 @@ func (nc *NGSI9Client) SendHeartBeat(brokerProfile *BrokerProfile) error {
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
+	if err == nil {
+		resp.Body.Close()
+	}
+
 	return err
 }

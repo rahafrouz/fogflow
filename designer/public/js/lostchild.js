@@ -639,16 +639,8 @@ function showMap()
         draw: {
             position: 'topleft',
             polyline: false,            
-			polygon: {
-                showArea: false
-            },
-            rectangle: {
-                shapeOptions: {
-                    color: '#E3225C',
-                    weight: 2,
-                    clickable: false
-                }
-            },
+            polygon: false,
+            rectangle: false,
             circle: {
                 shapeOptions: {
                     color: '#E3225C',

@@ -256,6 +256,11 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 func (master *Master) handleOperatorRegistration(operatorCtxObj *ContextObject) {
 	INFO.Println(operatorCtxObj)
 
+	if operatorCtxObj.IsEmpty() {
+		// does not handle the removal of operator
+		return
+	}
+
 	var operator = Operator{}
 	jsonText, _ := json.Marshal(operatorCtxObj.Attributes["operator"].Value.(map[string]interface{}))
 	err := json.Unmarshal(jsonText, &operator)
@@ -272,7 +277,12 @@ func (master *Master) handleOperatorRegistration(operatorCtxObj *ContextObject) 
 // to handle the management of docker images
 //
 func (master *Master) handleDockerImageRegistration(dockerImageCtxObj *ContextObject) {
-	INFO.Printf("%+v\r\n", dockerImageCtxObj)
+	INFO.Println(dockerImageCtxObj)
+
+	if dockerImageCtxObj.IsEmpty() {
+		// does not handle the removal of operator
+		return
+	}
 
 	dockerImage := DockerImage{}
 	dockerImage.OperatorName = dockerImageCtxObj.Attributes["operator"].Value.(string)
@@ -306,17 +316,44 @@ func (master *Master) prefetchDockerImages(image DockerImage) {
 // to update the topology list
 //
 func (master *Master) handleTopologyUpdate(topologyCtxObj *ContextObject) {
+	INFO.Println(topologyCtxObj)
+
+	if topologyCtxObj.IsEmpty() {
+		// remove this service topology entity
+		master.topologyList_lock.Lock()
+
+		var eid = topologyCtxObj.Entity.ID
+
+		// find which one has this id
+		for _, topology := range master.topologyList {
+			if topology.EntityIdID == eid {
+				var name = topology.Name
+				delete(master.topologyList, name)
+				break
+			}
+		}
+
+		master.topologyList_lock.Unlock()
+
+		return
+	}
+
+	// create or update this service topology
 	topology := Topology{}
 	jsonText, _ := json.Marshal(topologyCtxObj.Attributes["template"].Value.(map[string]interface{}))
 	err := json.Unmarshal(jsonText, &topology)
 	if err == nil {
 		INFO.Println(topology)
+
+		topology.EntityIdID = topologyCtxObj.Entity.ID
+
 		master.topologyList_lock.Lock()
 		master.topologyList[topology.Name] = &topology
 		master.topologyList_lock.Unlock()
 
 		INFO.Println(topology)
 	}
+
 }
 
 func (master *Master) getTopologyByName(name string) *Topology {
@@ -424,6 +461,14 @@ func (master *Master) subscribeContextAvailability(availabilitySubscription *Sub
 	}
 
 	return subscriptionId
+}
+
+func (master *Master) unsubscribeContextAvailability(sid string) {
+	client := NGSI9Client{IoTDiscoveryURL: master.cfg.GetDiscoveryURL()}
+	err := client.UnsubscribeContextAvailability(sid)
+	if err != nil {
+		ERROR.Println(err)
+	}
 }
 
 //

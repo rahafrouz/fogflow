@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/mmcloughlin/geohash"
 
@@ -92,7 +91,7 @@ type Routing struct {
 	RootSite *SiteNode
 
 	//lock to synchronize update/read of this routing table
-	lock sync.RWMutex
+	//lock sync.RWMutex
 }
 
 func (r *Routing) Init(rootDiscovery string, mySite SiteInfo) {
@@ -229,6 +228,9 @@ func (r *Routing) GetAllSubSites(curSite *SiteNode, allSites *[]SiteInfo) {
 
 func (r *Routing) GetMiniCoverForCircle(region Circle) []SiteInfo {
 	involvedSites := make([]SiteInfo, 0)
+
+	// for the time being, just return the current local site
+	involvedSites = append(involvedSites, r.MySiteInfo())
 
 	return involvedSites
 }
@@ -395,8 +397,8 @@ func (r *Routing) Serialization() []TreeNode {
 }
 
 func (r *Routing) Deserialization(siteList []TreeNode) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+	//r.lock.Lock()
+	//defer r.lock.Unlock()
 
 	// build the hashmap
 	for _, node := range siteList {

@@ -37,28 +37,14 @@ type Communicator struct {
 	stopChan chan int
 }
 
-// A useful closure we can use when there is a problem connecting to the broker
-// It uses Fibonacci sequence to space out retry attempts
-func Fibonacci() func() int {
-	a, b := 0, 1
-	return func() int {
-		a, b = b, a+b
-		return a
-	}
-}
-
 var RetryClosure = func() func() {
-	retryIn := 0
-	fibonacci := Fibonacci()
+	retryIn := 2 // retry after 2 seconds
 	return func() {
-		if retryIn > 0 {
-			durationString := fmt.Sprintf("%vs", retryIn)
-			duration, _ := time.ParseDuration(durationString)
+		durationString := fmt.Sprintf("%vs", retryIn)
+		duration, _ := time.ParseDuration(durationString)
 
-			log.Printf("Retrying in %v seconds", retryIn)
-			time.Sleep(duration)
-		}
-		retryIn = fibonacci()
+		log.Printf("Retrying in %v seconds", retryIn)
+		time.Sleep(duration)
 	}
 }
 
@@ -234,11 +220,11 @@ func (communicator *Communicator) openSubscriber() (*amqp.Channel, amqp.Queue, e
 	if err := channel.ExchangeDeclare(
 		communicator.config.Exchange,     // name of the exchange
 		communicator.config.ExchangeType, // type
-		true,  // durable
-		true,  // delete when complete
-		false, // internal
-		false, // noWait
-		nil,   // arguments
+		true,                             // durable
+		true,                             // delete when complete
+		false,                            // internal
+		false,                            // noWait
+		nil,                              // arguments
 	); err != nil {
 		return channel, queue, fmt.Errorf("Exchange Declare: %s\r\n", err)
 	}
@@ -246,11 +232,11 @@ func (communicator *Communicator) openSubscriber() (*amqp.Channel, amqp.Queue, e
 	// Declare a queue
 	queue, err = channel.QueueDeclare(
 		communicator.config.DefaultQueue, // name
-		true,  // durable
-		true,  // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // arguments
+		true,                             // durable
+		true,                             // delete when unused
+		false,                            // exclusive
+		false,                            // no-wait
+		nil,                              // arguments
 	)
 	if err != nil {
 		return channel, queue, fmt.Errorf("Queue Declare: %s\r\n", err)
@@ -259,11 +245,11 @@ func (communicator *Communicator) openSubscriber() (*amqp.Channel, amqp.Queue, e
 	// Bind topics with the queue
 	for _, key := range communicator.config.BindingKeys {
 		if err := channel.QueueBind(
-			queue.Name, // name of the queue
-			key,        // binding topic
+			queue.Name,                   // name of the queue
+			key,                          // binding topic
 			communicator.config.Exchange, // source exchange
-			false, // noWait
-			nil,   // arguments
+			false,                        // noWait
+			nil,                          // arguments
 		); err != nil {
 			return channel, queue, fmt.Errorf("Queue Bind: %s\r\n", err)
 		}
@@ -301,11 +287,11 @@ func (communicator *Communicator) openPublisher() (*amqp.Channel, <-chan amqp.Co
 	if err := channel.ExchangeDeclare(
 		communicator.config.Exchange,     // name of the exchange
 		communicator.config.ExchangeType, // type
-		true,  // durable
-		true,  // delete when complete
-		false, // internal
-		false, // noWait
-		nil,   // arguments
+		true,                             // durable
+		true,                             // delete when complete
+		false,                            // internal
+		false,                            // noWait
+		nil,                              // arguments
 	); err != nil {
 		return channel, nil, fmt.Errorf("Exchange Declare: %s", err)
 	}

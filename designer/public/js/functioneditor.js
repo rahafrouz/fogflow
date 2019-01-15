@@ -10,6 +10,7 @@ blocks.register({
         {
             name: "Name",
             type: "string",
+            defaultValue: "main",
             attrs: "editable"
         },    
         {

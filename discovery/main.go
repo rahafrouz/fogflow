@@ -96,7 +96,7 @@ func main() {
 	api.SetApp(router)
 
 	go func() {
-		INFO.Printf("Starting IoT Discovery on port %d\n", config.Discovery.Port)
+		fmt.Printf("Starting IoT Discovery on port %d\n", config.Discovery.Port)
 		panic(http.ListenAndServe(":"+strconv.Itoa(config.Discovery.Port), api.MakeHandler()))
 	}()
 

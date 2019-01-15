@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"regexp"
 	"strings"
@@ -60,12 +61,16 @@ func matchAttributes(registeredAttributes []ContextRegistrationAttribute, requir
 
 func matchMetadatas(metadatas []ContextMetadata, restriction Restriction) bool {
 	for _, scope := range restriction.Scopes {
-		switch scope.Type {
+		switch strings.ToLower(scope.Type) {
 		case "circle": // check if the location metadata belongs to the circle
 			for _, meta := range metadatas {
 				if meta.Type == "point" {
 					point := meta.Value.(Point)
 					circle := scope.Value.(Circle)
+
+					fmt.Println("IN CIRCLE?")
+					fmt.Printf("%+v\n", point)
+					fmt.Printf("%+v\n", circle)
 
 					if PointInCircle(&point, &circle) == false {
 						return false
@@ -79,13 +84,18 @@ func matchMetadatas(metadatas []ContextMetadata, restriction Restriction) bool {
 					point := meta.Value.(Point)
 					polygon := scope.Value.(Polygon)
 
+					fmt.Println("IN POLYGON?")
+
+					fmt.Printf("%+v\n", point)
+					fmt.Printf("%+v\n", polygon)
+
 					if PointInPolygon(&point, &polygon) == false {
 						return false
 					}
 				}
 			}
 
-		case "stringQuery": // check if the other metadatas fit the query statement
+		case "stringquery": // check if the other metadatas fit the query statement
 			queryString := scope.Value.(string)
 			constraints := strings.Split(queryString, ";")
 

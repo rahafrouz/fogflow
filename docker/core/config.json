@@ -1,5 +1,5 @@
 {
-    "root_discovery": "127.0.0.1:8090",     
+    "root_discovery": "127.0.0.1:443",     
     "webportal_ip": "127.0.0.1",     
     "coreservice_ip": "127.0.0.1",   
     "external_hostip": "127.0.0.1",         
@@ -10,19 +10,19 @@
     },
     "geohash_precision": 2,     
     "logging":{
-        "info":"stdout",
+        "info":"discard",
         "error":"stderr",
-        "protocol": "stdout",
+        "protocol": "discard",
         "debug": "discard"
     },
     "discovery": {
-        "port": 8090,
+        "port": 443,
         "postgresql": {
             "dbreset": true,
             "username": "postgres",
             "password": "postgres",
             "host": "127.0.0.1",
-            "port": 5433,
+            "port": 5432,
             "dbname": "ngsi9"
         }    
     },
@@ -37,7 +37,7 @@
         "start_actual_task": false       
     },
     "designer": {
-        "webSrvPort": 8080,
+        "webSrvPort": 80,
         "agentPort": 1030               
     },    
     "rabbitmq": {
