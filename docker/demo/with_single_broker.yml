@@ -1,0 +1,72 @@
+version: "3"
+services:
+    designer:
+        image: fogflow/designer:intent
+        volumes:
+            - ./cloud.json:/app/config.json                
+        ports:
+            - 80:80
+            - 1030:1030
+        depends_on: 
+            - discovery
+            - cloud_broker
+    discovery:
+        image: fogflow/discovery:intent
+        volumes:
+            - ./cloud.json:/config.json                        
+        ports:
+            - 443:443
+        depends_on: 
+            - postgis
+    cloud_broker:
+        image: fogflow/broker:intent
+        volumes:
+            - ./cloud.json:/config.json                        
+        ports:
+            - 8080:8080
+        depends_on: 
+            - discovery
+    master:
+        image: fogflow/master:intent
+        volumes:
+            - ./cloud.json:/config.json                        
+        links:
+            - rabbitmq        
+        ports:
+            - 1060:1060 
+        depends_on: 
+            - rabbitmq
+            - discovery
+            - cloud_broker     
+    cloud_worker:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./cloud.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+    postgis:
+        image: mdillon/postgis
+        ports:
+            - 5432:5432        
+    rabbitmq:
+        image: tutum/rabbitmq
+        ports:
+            - 5672:5672
+        environment:
+            - RABBITMQ_PASS=mypass   
+
+    edge_worker1:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge1.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+
+
+    edge_worker2:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge2.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+

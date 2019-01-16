@@ -34,7 +34,7 @@
     },
     "worker": {
         "container_autoremove": false,
-        "start_actual_task": false               
+        "start_actual_task": true               
     },
     "designer": {
         "webSrvPort": 80,
