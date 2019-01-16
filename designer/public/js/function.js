@@ -26,49 +26,29 @@ var client = new NGSI10Client(config.brokerURL);
 var myFogFunctionExamples = [
 {
     name: "Test",
-    topology: { "entityId":{"id":"Topology.Test","type":"Topology","isPattern":false},
-                "attributes":{
-                    "designboard": {"type":"object","value":{"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":123,"y":-99,"type":"Task","module":null,"values":{"name":"Main","operator":"dummy","outputs":["Out"]}},{"id":2,"x":-194,"y":-97,"type":"EntityStream","module":null,"values":{"selectedtype":"Temperature","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}},
-                    "template":{"type":"object","value":{"name":"Test","description":"just for a simple test","tasks":[{"name":"Main","operator":"dummy","input_streams":[{"selected_type":"Temperature","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]}}
-                }
-              },
-    intent:  {"entityId":{"id":"ServiceIntent.001","type":"ServiceIntent","isPattern":false},"attributes":{"status":{"type":"string","value":"enabled"},"intent":{"type":"object","value":{"topology":"Test","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}}}}
-}, {
+    topology: {"name":"Test","description":"just for a simple test","tasks":[{"name":"Main","operator":"dummy","input_streams":[{"selected_type":"Temperature","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":123,"y":-99,"type":"Task","module":null,"values":{"name":"Main","operator":"dummy","outputs":["Out"]}},{"id":2,"x":-194,"y":-97,"type":"EntityStream","module":null,"values":{"selectedtype":"Temperature","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]},
+    intent: {"topology":"Test","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}
+},{
     name: "PrivateSiteEstimation",
-    topology: { "entityId":{"id":"Topology.PrivateSiteEstimation","type":"Topology","isPattern":false},
-                "attributes":{
-                    "designboard": {"type":"object","value": {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":26,"y":-47,"type":"Task","module":null,"values":{"name":"Estimation","operator":"privatesite","outputs":["Out"]}},{"id":2,"x":-302,"y":-87,"type":"EntityStream","module":null,"values":{"selectedtype":"PrivateSite","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}} ,
-                    "template": {"type":"object","value": {"name":"PrivateSiteEstimation","description":"to estimate the free parking lots from a private parking site","tasks":[{"name":"Estimation","operator":"privatesite","input_streams":[{"selected_type":"PrivateSite","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]}}
-                }
-              },
-    intent:  {"entityId":{"id":"ServiceIntent.002","type":"ServiceIntent","isPattern":false},"attributes":{"status":{"type":"string","value":"enabled"},"intent":{"type":"object","value":{"topology":"PrivateSiteEstimation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}}}}
+    topology: {"name":"PrivateSiteEstimation","description":"to estimate the free parking lots from a private parking site","tasks":[{"name":"Estimation","operator":"privatesite","input_streams":[{"selected_type":"PrivateSite","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":26,"y":-47,"type":"Task","module":null,"values":{"name":"Estimation","operator":"privatesite","outputs":["Out"]}},{"id":2,"x":-302,"y":-87,"type":"EntityStream","module":null,"values":{"selectedtype":"PrivateSite","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]},
+    intent: {"topology":"PrivateSiteEstimation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}
 }, {
     name: "PublicSiteEstimation",
-    topology: { "entityId":{"id":"Topology.PublicSiteEstimation","type":"Topology","isPattern":false},
-                "attributes":{
-                    "designboard": {"type":"object","value": {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-37,"y":-108,"type":"Task","module":null,"values":{"name":"PubFreeLotEstimation","operator":"publicsite","outputs":["Out"]}},{"id":2,"x":-340,"y":-128,"type":"EntityStream","module":null,"values":{"selectedtype":"PublicSite","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}},
-                    "template": {"type":"object","value": {"name":"PublicSiteEstimation","description":"to estimate the free parking lot from a public parking site","tasks":[{"name":"PubFreeLotEstimation","operator":"publicsite","input_streams":[{"selected_type":"PublicSite","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]}}
-                }
-              },
-    intent: {"entityId":{"id":"ServiceIntent.003","type":"ServiceIntent","isPattern":false},"attributes":{"status":{"type":"string","value":"enabled"},"intent":{"type":"object","value":{"topology":"PublicSiteEstimation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}}}}
+    topology: {"name":"PublicSiteEstimation","description":"to estimate the free parking lot from a public parking site","tasks":[{"name":"PubFreeLotEstimation","operator":"publicsite","input_streams":[{"selected_type":"PublicSite","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]} ,
+    designboard:  {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-37,"y":-108,"type":"Task","module":null,"values":{"name":"PubFreeLotEstimation","operator":"publicsite","outputs":["Out"]}},{"id":2,"x":-340,"y":-128,"type":"EntityStream","module":null,"values":{"selectedtype":"PublicSite","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]},
+    intent: {"topology":"PublicSiteEstimation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}
 }, {
     name: "ArrivalTimeEstimation",
-    topology: { "entityId":{"id":"Topology.ArrivalTimeEstimation","type":"Topology","isPattern":false},
-                "attributes":{
-                    "designboard": {"type":"object","value":  {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-106,"y":-93,"type":"Task","module":null,"values":{"name":"CalculateArrivalTime","operator":"connectedcar","outputs":["Out"]}},{"id":2,"x":-420,"y":-145,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]}} ,
-                    "template": {"type":"object","value": {"name":"ArrivalTimeEstimation","description":"to estimate when the car will arrive at the destination","tasks":[{"name":"CalculateArrivalTime","operator":"connectedcar","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]}}
-                }
-              },
-    intent: {"entityId":{"id":"ServiceIntent.004","type":"ServiceIntent","isPattern":false},"attributes":{"status":{"type":"string","value":"enabled"},"intent":{"type":"object","value":{"topology":"ArrivalTimeEstimation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}}}}
+    topology:  {"name":"ArrivalTimeEstimation","description":"to estimate when the car will arrive at the destination","tasks":[{"name":"CalculateArrivalTime","operator":"connectedcar","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":[],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-106,"y":-93,"type":"Task","module":null,"values":{"name":"CalculateArrivalTime","operator":"connectedcar","outputs":["Out"]}},{"id":2,"x":-420,"y":-145,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["all"],"groupby":"EntityID","scoped":false}}]} ,
+    intent: {"topology":"ArrivalTimeEstimation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}
 }, {
     name: "ParkingLotRecommendation",
-    topology: { "entityId":{"id":"Topology.ParkingLotRecommendation","type":"Topology","isPattern":false},
-                "attributes":{
-                    "designboard": {"type":"object","value":  {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-14,"y":-46,"type":"Task","module":null,"values":{"name":"WhereToParking","operator":"recommender","outputs":["Out"]}},{"id":2,"x":-379,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}}]}} ,
-                    "template": {"type":"object","value":  {"name":"ParkingLotRecommendation","description":"to recommend where to park around the destination","tasks":[{"name":"WhereToParking","operator":"recommender","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]}}
-                }
-              },
-    intent: {"entityId":{"id":"ServiceIntent.005","type":"ServiceIntent","isPattern":false},"attributes":{"status":{"type":"string","value":"enabled"},"intent":{"type":"object","value":{"topology":"ParkingLotRecommendation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}}}}
+    topology: {"name":"ParkingLotRecommendation","description":"to recommend where to park around the destination","tasks":[{"name":"WhereToParking","operator":"recommender","input_streams":[{"selected_type":"ConnectedCar","selected_attributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}],"output_streams":[{"entity_type":"Out"}]}]},
+    designboard: {"edges":[{"id":1,"block1":2,"connector1":["stream","output"],"block2":1,"connector2":["streams","input"]}],"blocks":[{"id":1,"x":-14,"y":-46,"type":"Task","module":null,"values":{"name":"WhereToParking","operator":"recommender","outputs":["Out"]}},{"id":2,"x":-379,"y":-110,"type":"EntityStream","module":null,"values":{"selectedtype":"ConnectedCar","selectedattributes":["ParkingRequest"],"groupby":"EntityID","scoped":false}}]},
+    intent: {"topology":"ParkingLotRecommendation","priority":{"exclusive":false,"level":0},"qos":"Max Throughput","geoscope":{"scopeType":"local","scopeValue":"local"}}
 } 
 ];
 
@@ -118,7 +98,8 @@ function initFogFunctionExamples()
         };    
         functionCtxObj.attributes = {};   
         functionCtxObj.attributes.name = {type: 'string', value: fogfunction.name};    
-        functionCtxObj.attributes.topology = {type: 'object', value: fogfunction.topology};    
+        functionCtxObj.attributes.topology = {type: 'object', value: fogfunction.topology};   
+        functionCtxObj.attributes.designboard = {type: 'object', value: fogfunction.designboard};            
         functionCtxObj.attributes.intent = {type: 'object', value: fogfunction.intent};  
         functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};         
           
@@ -198,13 +179,13 @@ function showFogFunctionEditor()
 
 function openFogFunctionEditor(fogfunction)
 {
-    var topologyEntity = fogfunction.attributes.topology.value;
-    
-    if(topologyEntity &&  topologyEntity.attributes.designboard){
-        CurrentScene = topologyEntity.attributes.designboard.value;          
+    console.log(fogfunction);
+      
+    if(fogfunction &&  fogfunction.attributes.designboard){
+        CurrentScene = fogfunction.attributes.designboard.value;          
         showFogFunctionEditor(); 
         
-        var topology = topologyEntity.attributes.template.value;        
+        var topology = fogfunction.attributes.topology.value;        
         $('#serviceName').val(topology.name);
         $('#serviceDescription').val(topology.description);
     }
@@ -241,17 +222,6 @@ function boardScene2Topology(scene)
     topology.description = serviceDescription;    
     topology.tasks = generateTaskList(scene);           
 
-    var topologyCtxObj = {};    
-    topologyCtxObj.entityId = {
-        id : 'Topology.' + topology.name, 
-        type: 'Topology',
-        isPattern: false
-    };    
-    topologyCtxObj.attributes = {};   
-    topologyCtxObj.attributes.designboard = {type: 'object', value: scene};    
-    topologyCtxObj.attributes.template = {type: 'object', value: topology};  
-
-
     // step 2: construct an intent object
     var intent = {};        
     intent.topology = topologyName;    
@@ -265,17 +235,6 @@ function boardScene2Topology(scene)
         "scopeValue": "local"
     };   
     
-    var intentCtxObj = {};    
-    intentCtxObj.entityId = { 
-        id: 'ServiceIntent.' + uuid(),           
-        type: 'ServiceIntent',
-        isPattern: false
-    };
-    
-    intentCtxObj.attributes = {};   
-    intentCtxObj.attributes.status = {type: 'string', value: 'enabled'};
-    intentCtxObj.attributes.intent = {type: 'object', value: intent};  
-    
     // step 3: create this fog function            
     var functionCtxObj = {};    
     functionCtxObj.entityId = {
@@ -285,8 +244,9 @@ function boardScene2Topology(scene)
     };    
     functionCtxObj.attributes = {};   
     functionCtxObj.attributes.name = {type: 'string', value: topologyName};    
-    functionCtxObj.attributes.topology = {type: 'object', value: topologyCtxObj};    
-    functionCtxObj.attributes.intent = {type: 'object', value: intentCtxObj};  
+    functionCtxObj.attributes.topology = {type: 'object', value: topology};    
+    functionCtxObj.attributes.designboard = {type: 'object', value: scene};        
+    functionCtxObj.attributes.intent = {type: 'object', value: intent};  
     functionCtxObj.attributes.status = {type: 'string', value: 'enabled'};    
     
     submitFogFunction(functionCtxObj).then(showFogFunctions);
@@ -481,10 +441,9 @@ function displayFunctionList(fogFunctions)
                        
 		html += '<td>' + fogfunction.attributes.name.value + '</td>';    
         
-        var topologyEntity = fogfunction.attributes.topology.value;    
-		html += '<td>' + topologyEntity.entityId.id + '</td>'; 
+		html += '<td>' + JSON.stringify(fogfunction.attributes.topology.value) + '</td>'; 
                        
-		html += '<td>' + JSON.stringify(fogfunction.attributes.intent) + '</td>';                
+		html += '<td>' + JSON.stringify(fogfunction.attributes.intent.value) + '</td>';                
         
 		html += '</tr>';	
 	}
@@ -514,36 +473,8 @@ function displayFunctionList(fogFunctions)
 	}        
 }
 
-
 function deleteFogFunction(fogfunction)
-{
-    // delete the related intent object   
-    var intent = fogfunction.attributes.intent.value; 
-    var intentEntity = {
-        id : intent.entityId.id, 
-        type: 'ServiceIntent',
-        isPattern: false
-    };	        
-    client.deleteContext(intentEntity).then( function(data) {
-        console.log(data);
-    }).catch( function(error) {
-        console.log('failed to delete the intent entity');
-    });  	
-    
-    // delete the related service topology
-    var topology = fogfunction.attributes.topology.value; 
-    var topologyEntity = {
-        id : topology.entityId.id, 
-        type: 'Topology',
-        isPattern: false
-    };	        
-    client.deleteContext(topologyEntity).then( function(data) {
-        console.log(data);
-    }).catch( function(error) {
-        console.log('failed to delete the intent entity');
-    });  	  	
-    
-    
+{   
     // delete this fog function
     var functionEntity = {
         id : fogfunction.entityId.id, 
@@ -601,20 +532,29 @@ function displayTaskList(tasks)
     html += '<th>Service</th>';
     html += '<th>Task</th>';      
     html += '<th>Type</th>';
-    html += '<th>Attributes</th>';
-    html += '<th>DomainMetadata</th>';    
+    html += '<th>Worker</th>';
+    html += '<th>port</th>';	
+    html += '<th>status</th>';		        
     html += '</tr></thead>';    
        
     for(var i=0; i<tasks.length; i++){
         var task = tasks[i];
 		
         html += '<tr>'; 
-		html += '<td>' + task.entityId.id + '</td>';
-		html += '<td>' + task.entityId.type + '</td>'; 
+        html += '<td>' + task.entityId.id + '</td>';
+        html += '<td>' + task.entityId.type + '</td>'; 
         html += '<td>' + task.attributes.service.value + '</td>';		
         html += '<td>' + task.attributes.task.value + '</td>';        
-		html += '<td>' + JSON.stringify(task.attributes) + '</td>';        
-		html += '<td>' + JSON.stringify(task.metadata) + '</td>';
+	    html += '<td>' + task.metadata.worker.value + '</td>';
+        
+		html += '<td>' + task.attributes.port.value + '</td>';
+				
+		if (task.attributes.status.value == "paused") {
+			html += '<td><font color="red">' + task.attributes.status.value + '</font></td>';			
+		} else {
+			html += '<td><font color="green">' + task.attributes.status.value + '</font></td>';
+		}        
+        
 		html += '</tr>';	
 	}
        

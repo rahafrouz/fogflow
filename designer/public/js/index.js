@@ -466,14 +466,7 @@ function deviceRegistration()
     html += '<div class="control-group"><label class="control-label" for="input01">Icon Image</label>';
     html += '<div class="controls"><input class="input-file" id="iconImage" type="file" accept="image/png"></div>'
     html += '</div>';    
-
-    html += '<div class="control-group"><label class="control-label" for="optionsCheckbox">Pull-based</label>';
-    html += '<div class="controls"> <label class="checkbox"><input type="checkbox" id="pullbased" value="option1">';
-    html += 'data stream must be fetched by the platform under URL';
-    html += '</label></div>';
-    html += '</div>';        
-
-    
+     
     html += '<div class="control-group"><label class="control-label" for="input01">Camera Image</label>';
     html += '<div class="controls"><input class="input-file" id="imageContent" type="file" accept="image/png"></div>'
     html += '</div>';    
@@ -543,16 +536,6 @@ function registerNewDevice()
     var type = $('#deviceType option:selected').val();
     console.log(type);
     
-    var isPullbased = document.getElementById('pullbased').checked;
-    console.log(isPullbased);        
-    
-
-    // check the provided inputs    
-    if( isPullbased == true && contentImage == null ) {
-        alert('please provide the content image');
-        return;
-    }
-    
     if( id == '' || type == '' || locationOfNewDevice == null) {
         alert('please provide the required inputs');
         return;
@@ -568,8 +551,28 @@ function registerNewDevice()
            console.log(text);
         });        
     } else {
-        iconImageFileName = 'defaultIcon.png';
+        switch(type) {
+            case "PowerPanel":
+                iconImageFileName = 'shop.png';  
+                break;          
+            case "Camera":
+                iconImageFileName = 'camera.png';            
+                break;
+            default:
+                iconImageFileName = 'defaultIcon.png';            
+                break;
+        }                
     }
+        
+            
+    // if the device is pull-based, publish a stream entity with its provided URL as well        
+    if( contentImage != null ) {
+        Webcam.params.upload_name = contentImageFileName;
+        Webcam.upload(contentImage,  '/photo', function(code, text) {
+           console.log(code);
+           console.log(text);
+        });                                                
+    }         
         
     //register a new device
     var newDeviceObject = {};
@@ -582,14 +585,20 @@ function registerNewDevice()
 
     newDeviceObject.attributes = {};   
     newDeviceObject.attributes.id = {type: 'string', value: id};    
+    
+    var url = 'http://' + config.agentIP + ':' + config.webSrvPort + '/photo/' + contentImageFileName;
+    newDeviceObject.attributes.url = {type: 'string', value: url};       
     newDeviceObject.attributes.iconURL = {type: 'string', value: '/photo/' + iconImageFileName};
-    newDeviceObject.attributes.pullbased = {type: 'boolean', value: isPullbased};    
             
     newDeviceObject.metadata = {};    
     newDeviceObject.metadata.location = {
         type: 'point',
         value: {'latitude': locationOfNewDevice.lat, 'longitude': locationOfNewDevice.lng}
-    };               
+    };       
+    newDeviceObject.metadata.cameraID = {
+        type: 'string',
+        value: id
+    };              
 
     client.updateContext(newDeviceObject).then( function(data) {
         console.log(data);
@@ -599,46 +608,7 @@ function registerNewDevice()
     }).catch( function(error) {
         console.log('failed to register the new device object');
     });      
-    
-    // if the device is pull-based, publish a stream entity with its provided URL as well        
-    if( isPullbased == true && contentImage != null ) {
-        Webcam.params.upload_name = contentImageFileName;
-        Webcam.upload(contentImage,  '/photo', function(code, text) {
-           console.log(code);
-           console.log(text);
-        });   
-                
-        //register a new device
-        var newStreamObject = {};
-    
-        newStreamObject.entityId = {
-            id : 'Stream.' + type + '.' + id, 
-            type: type,
-            isPattern: false
-        };
-    
-        var url = 'http://' + config.agentIP + ':' + config.webSrvPort + '/photo/' + contentImageFileName;
-    
-        newStreamObject.attributes = {};   
-        newStreamObject.attributes.url = {type: 'string', value: url};
-        newStreamObject.attributes.pullbased = {type: 'boolean', value: isPullbased};    
-                
-        newStreamObject.metadata = {};    
-        newStreamObject.metadata.location = {
-            type: 'point',
-            value: {'latitude': locationOfNewDevice.lat, 'longitude': locationOfNewDevice.lng}
-        };  
-        newStreamObject.metadata.cameraID = {
-            type: 'string',
-            value: id
-        };                        
-    
-        client.updateContext(newStreamObject).then( function(data) {
-            console.log(data);
-        }).catch( function(error) {
-            console.log('failed to register the corresponding stream object');
-        });                              
-    }    
+   
 }
        
 function uuid() {

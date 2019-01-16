@@ -146,10 +146,17 @@ type Priority struct {
 }
 
 type Topology struct {
-	EntityIdID  string `json:"id"`
+	Id          string `json:"id"`
 	Description string `json:"description"`
 	Name        string `json:"name"`
 	Tasks       []Task `json:"tasks"`
+}
+
+type FogFunction struct {
+	Id       string        `json:"id"`
+	Name     string        `json:"name"`
+	Topology Topology      `json:"topology"`
+	Intent   ServiceIntent `json:"intent"`
 }
 
 type DockerImage struct {
