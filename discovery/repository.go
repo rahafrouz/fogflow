@@ -65,6 +65,9 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
 
+	DEBUG.Println("UPDATE ENTITY-BEGIN")
+	DEBUG.Println(entity.ID)
+
 	statements := make([]string, 0)
 
 	var newEntityFlag = true
@@ -210,12 +213,17 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 	// apply the update once for the entire registration request, within a transaction
 	er.exec(statements)
 
+	DEBUG.Println("UPDATE ENTITY-END")
+	DEBUG.Println(entity.ID)
+
 	return newEntityFlag
 }
 
 func (er *EntityRepository) queryEntities(entities []EntityId, attributes []string, restriction Restriction) map[string][]EntityId {
 	er.dbLock.RLock()
 	defer er.dbLock.RUnlock()
+
+	DEBUG.Println("QUERY ENTITY-BEGIN")
 
 	entityMap := make(map[string][]EntityId)
 
@@ -353,6 +361,8 @@ func (er *EntityRepository) queryEntities(entities []EntityId, attributes []stri
 		rows.Close()
 	}
 
+	DEBUG.Println("QUERY ENTITY-END")
+
 	return entityMap
 }
 
@@ -360,7 +370,8 @@ func (er *EntityRepository) deleteEntity(eid string) {
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
 
-	DEBUG.Println("==delete entity ", eid)
+	DEBUG.Println("DELETE ENTITY-BEGIN")
+	DEBUG.Println(eid)
 
 	// find out the associated entity
 	queryStatement := fmt.Sprintf("SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = '%s'", eid)
@@ -404,6 +415,9 @@ func (er *EntityRepository) deleteEntity(eid string) {
 	statements = append(statements, executeStatement)
 
 	er.exec(statements)
+
+	DEBUG.Println("DELETE ENTITY-BEGIN")
+	DEBUG.Println(eid)
 }
 
 func (er *EntityRepository) ProviderLeft(providerURL string) {
@@ -451,12 +465,17 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 	er.dbLock.RLock()
 	defer er.dbLock.RUnlock()
 
+	DEBUG.Println("RETRIEVE ENTITY-BEGIN")
+	DEBUG.Println(entityID)
+
 	// query all entities associated with this registrationId
 	queryStatement := fmt.Sprintf("SELECT eid, type, isPattern, providerURL FROM entity_tab WHERE entity_tab.eid = '%s';", entityID)
 
 	rows, err := er.query(queryStatement)
 	if err != nil {
 		ERROR.Println(err)
+		DEBUG.Println("RETRIEVE ENTITY-END")
+		DEBUG.Println(entityID)
 		return nil
 	}
 	defer rows.Close()
@@ -590,8 +609,14 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 
 		ctxRegistration.Metadata = registeredMetadatas
 
+		DEBUG.Println("RETRIEVE ENTITY-END")
+		DEBUG.Println(entityID)
+
 		return &ctxRegistration
 	}
+
+	DEBUG.Println("RETRIEVE ENTITY-END")
+	DEBUG.Println(entityID)
 
 	return nil
 }

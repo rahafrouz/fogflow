@@ -834,8 +834,9 @@ function displayTaskList(tasks)
     html += '<th>Type</th>';
     html += '<th>Service</th>';
     html += '<th>Task</th>';    
-    html += '<th>Attributes</th>';
-    html += '<th>DomainMetadata</th>';    
+    html += '<th>Worker</th>';    
+    html += '<th>port</th>';	
+    html += '<th>status</th>';		    
     html += '</tr></thead>';    
        
     for(var i=0; i<tasks.length; i++){
@@ -846,8 +847,16 @@ function displayTaskList(tasks)
 		html += '<td>' + task.entityId.type + '</td>'; 
         html += '<td>' + task.attributes.service.value + '</td>';		
         html += '<td>' + task.attributes.task.value + '</td>';	        
-		html += '<td>' + JSON.stringify(task.attributes) + '</td>';        
-		html += '<td>' + JSON.stringify(task.metadata) + '</td>';
+	    html += '<td>' + task.metadata.worker.value + '</td>';
+
+		html += '<td>' + task.attributes.port.value + '</td>';
+				
+		if (task.attributes.status.value == "paused") {
+			html += '<td><font color="red">' + task.attributes.status.value + '</font></td>';			
+		} else {
+			html += '<td><font color="green">' + task.attributes.status.value + '</font></td>';
+		}
+        
 		html += '</tr>';	
 	}
        

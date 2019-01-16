@@ -44,6 +44,10 @@ type Master struct {
 	topologyList      map[string]*Topology
 	topologyList_lock sync.RWMutex
 
+	//list of all submitted topologies
+	fogfunctionList      map[string]*FogFunction
+	fogfunctionList_lock sync.RWMutex
+
 	//to manage the orchestration of service topology
 	serviceMgr *ServiceMgr
 
@@ -195,6 +199,7 @@ func (master *Master) triggerInitialSubscriptions() {
 	master.subscribeContextEntity("Operator")
 	master.subscribeContextEntity("DockerImage")
 	master.subscribeContextEntity("Topology")
+	master.subscribeContextEntity("FogFunction")
 	master.subscribeContextEntity("ServiceIntent")
 	master.subscribeContextEntity("TaskIntent")
 }
@@ -239,6 +244,10 @@ func (master *Master) onReceiveContextNotify(notifyCtxReq *NotifyContextRequest)
 	// topology to define service template
 	case "Topology":
 		master.handleTopologyUpdate(contextObj)
+
+	// fog function that includes a pair of topology and intent
+	case "FogFunction":
+		master.handleFogFunctionUpdate(contextObj)
 
 	// service orchestration
 	case "ServiceIntent":
@@ -313,6 +322,84 @@ func (master *Master) prefetchDockerImages(image DockerImage) {
 }
 
 //
+// to update the fog function list
+//
+func (master *Master) handleFogFunctionUpdate(fogfunctionCtxObj *ContextObject) {
+	INFO.Println(fogfunctionCtxObj)
+
+	if fogfunctionCtxObj.IsEmpty() {
+
+		var eid = fogfunctionCtxObj.Entity.ID
+
+		fogfunction := master.fogfunctionList[eid]
+
+		// remove the service intent
+		master.serviceMgr.removeServiceIntent(fogfunction.Intent.ID)
+
+		// remove the service topology
+		topology := fogfunction.Topology
+		master.topologyList_lock.Lock()
+		master.topologyList[topology.Name] = &topology
+		master.topologyList_lock.Unlock()
+
+		// remove this fog function entity
+		master.fogfunctionList_lock.Lock()
+		delete(master.fogfunctionList, eid)
+		master.fogfunctionList_lock.Unlock()
+
+		return
+	}
+
+	topology := Topology{}
+
+	topologyJsonText, err := json.Marshal(fogfunctionCtxObj.Attributes["topology"].Value.(map[string]interface{}))
+	if err != nil {
+		ERROR.Println("the topology object is not defined")
+		return
+	}
+	err = json.Unmarshal(topologyJsonText, &topology)
+	if err != nil {
+		ERROR.Println("the topology object is not correctly defined")
+		return
+	}
+
+	intent := ServiceIntent{}
+
+	intentJsonText, err := json.Marshal(fogfunctionCtxObj.Attributes["intent"].Value.(map[string]interface{}))
+	if err != nil {
+		ERROR.Println("the intent object is not defined")
+		return
+	}
+	err = json.Unmarshal(intentJsonText, &intent)
+	if err != nil {
+		ERROR.Println("the intent object is not correctly defined")
+		return
+	}
+
+	fogfunction := FogFunction{}
+
+	fogfunction.Id = fogfunctionCtxObj.Entity.ID
+	fogfunction.Name = fogfunctionCtxObj.Attributes["name"].Value.(string)
+	fogfunction.Topology = topology
+	fogfunction.Intent = intent
+
+	// add the service topology
+	master.topologyList_lock.Lock()
+	master.topologyList[topology.Name] = &topology
+	master.topologyList_lock.Unlock()
+
+	// handle the associated service intent
+	master.serviceMgr.handleServiceIntent(&fogfunction.Intent)
+
+	// create or update this fog function
+	master.fogfunctionList_lock.Lock()
+	master.fogfunctionList[fogfunction.Id] = &fogfunction
+	master.fogfunctionList_lock.Unlock()
+
+	INFO.Println(fogfunction)
+}
+
+//
 // to update the topology list
 //
 func (master *Master) handleTopologyUpdate(topologyCtxObj *ContextObject) {
@@ -326,7 +413,7 @@ func (master *Master) handleTopologyUpdate(topologyCtxObj *ContextObject) {
 
 		// find which one has this id
 		for _, topology := range master.topologyList {
-			if topology.EntityIdID == eid {
+			if topology.Id == eid {
 				var name = topology.Name
 				delete(master.topologyList, name)
 				break
@@ -345,7 +432,7 @@ func (master *Master) handleTopologyUpdate(topologyCtxObj *ContextObject) {
 	if err == nil {
 		INFO.Println(topology)
 
-		topology.EntityIdID = topologyCtxObj.Entity.ID
+		topology.Id = topologyCtxObj.Entity.ID
 
 		master.topologyList_lock.Lock()
 		master.topologyList[topology.Name] = &topology
