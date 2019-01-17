@@ -148,9 +148,6 @@ func (er *EntityRepository) updateRegistrationInDataBase(entity EntityId, regist
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
 
-	DEBUG.Println("UPDATE ENTITY-BEGIN")
-	DEBUG.Println(entity.ID)
-
 	queries := make([]DBQuery, 0)
 
 	// update the entity table
@@ -306,9 +303,6 @@ func (er *EntityRepository) updateRegistrationInDataBase(entity EntityId, regist
 	// apply the update once for the entire registration request, within a transaction
 	er.execDBQuery(queries)
 
-	DEBUG.Println("UPDATE ENTITY-END")
-	DEBUG.Println(entity.ID)
-
 	return nil
 }
 
@@ -318,8 +312,6 @@ func (er *EntityRepository) updateRegistrationInDataBase(entity EntityId, regist
 func (er *EntityRepository) queryEntities(entities []EntityId, attributes []string, restriction Restriction) map[string][]EntityId {
 	er.dbLock.RLock()
 	defer er.dbLock.RUnlock()
-
-	DEBUG.Println("QUERY ENTITY-BEGIN")
 
 	entityMap := make(map[string][]EntityId)
 
@@ -432,8 +424,6 @@ func (er *EntityRepository) queryEntities(entities []EntityId, attributes []stri
 			queryStatement = queryStatement + fmt.Sprintf(" ORDER BY %s ", orderBy)
 		}
 
-		DEBUG.Println(queryStatement)
-
 		// perform the query
 		rows, err := er.query(queryStatement)
 		if err != nil {
@@ -457,17 +447,12 @@ func (er *EntityRepository) queryEntities(entities []EntityId, attributes []stri
 		rows.Close()
 	}
 
-	DEBUG.Println("QUERY ENTITY-END")
-
 	return entityMap
 }
 
 func (er *EntityRepository) deleteEntity(eid string) {
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
-
-	DEBUG.Println("DELETE ENTITY-BEGIN")
-	DEBUG.Println(eid)
 
 	// find out the associated entity
 	queryStatement := "SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = $1;"
@@ -514,9 +499,6 @@ func (er *EntityRepository) deleteEntity(eid string) {
 	queries = append(queries, query)
 
 	er.execDBQuery(queries)
-
-	DEBUG.Println("DELETE ENTITY-BEGIN")
-	DEBUG.Println(eid)
 }
 
 func (er *EntityRepository) ProviderLeft(providerURL string) {
@@ -569,218 +551,11 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 	return er.ctxRegistrationList[entityID]
 }
 
-/*  disable this due to the performance reason
-func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegistration {
-	er.dbLock.RLock()
-	defer er.dbLock.RUnlock()
-
-	DEBUG.Println("RETRIEVE ENTITY-BEGIN")
-	DEBUG.Println(entityID)
-
-	// query all entities associated with this registrationId
-	queryStatement := "SELECT eid, type, isPattern, providerURL FROM entity_tab WHERE entity_tab.eid = $1;"
-	rows, err := er.db.Query(queryStatement, entityID)
-	if err != nil {
-		ERROR.Println(err)
-		DEBUG.Println("RETRIEVE ENTITY-END")
-		DEBUG.Println(entityID)
-		return nil
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var eid, etype, epattern, providerURL string
-		rows.Scan(&eid, &etype, &epattern, &providerURL)
-
-		ctxRegistration := ContextRegistration{}
-
-		entities := make([]EntityId, 0)
-
-		entity := EntityId{}
-		entity.ID = eid
-		entity.Type = etype
-
-		if epattern == "true" {
-			entity.IsPattern = true
-		} else {
-			entity.IsPattern = false
-		}
-
-		DEBUG.Println("========test=======")
-		DEBUG.Println(entity)
-
-		entities = append(entities, entity)
-
-		ctxRegistration.EntityIdList = entities
-		ctxRegistration.ProvidingApplication = providerURL
-
-		// query all attributes that belong to those entities
-		registeredAttributes := make([]ContextRegistrationAttribute, 0)
-
-		queryStatement := "SELECT name, type, isDomain FROM attr_tab WHERE attr_tab.eid = $1;"
-		results, err := er.db.Query(queryStatement, eid)
-		if err != nil {
-			ERROR.Println(err)
-			DEBUG.Println("RETRIEVE ENTITY-END")
-			DEBUG.Println(entityID)
-			return nil
-		}
-		for results.Next() {
-			var name, attributeType, isDomain string
-			results.Scan(&name, &attributeType, &isDomain)
-
-			attr := ContextRegistrationAttribute{}
-			attr.Name = name
-			attr.Type = attributeType
-
-			if isDomain == "true" {
-				attr.IsDomain = true
-			} else {
-				attr.IsDomain = false
-			}
-
-			registeredAttributes = append(registeredAttributes, attr)
-		}
-		results.Close()
-
-		DEBUG.Println("========test==2=====")
-		DEBUG.Println(registeredAttributes)
-
-		ctxRegistration.ContextRegistrationAttributes = registeredAttributes
-
-		// query all metadatas that belong to those entities
-		registeredMetadatas := make([]ContextMetadata, 0)
-
-		queryStatement = "SELECT name, type, value FROM metadata_tab WHERE metadata_tab.eid = $1;"
-		results, err = er.db.Query(queryStatement, eid)
-		if err != nil {
-			ERROR.Println(err)
-			DEBUG.Println("RETRIEVE ENTITY-END")
-			DEBUG.Println(entityID)
-			return nil
-		}
-		for results.Next() {
-			var name, mdType, value string
-			results.Scan(&name, &mdType, &value)
-
-			metadata := ContextMetadata{}
-			metadata.Name = name
-			metadata.Type = mdType
-			metadata.Value = value
-
-			registeredMetadatas = append(registeredMetadatas, metadata)
-		}
-		results.Close()
-
-		DEBUG.Println("========test==3=====")
-		DEBUG.Println(registeredMetadatas)
-
-		// query all geo-related metadatas that belong to those entities
-		queryStatement = "SELECT name, type, ST_AsText(box) FROM geo_box_tab WHERE geo_box_tab.eid = $1;"
-		results, err = er.db.Query(queryStatement, eid)
-		if err != nil {
-			ERROR.Println(err)
-			DEBUG.Println("RETRIEVE ENTITY-END")
-			DEBUG.Println(entityID)
-			return nil
-		}
-		for results.Next() {
-			DEBUG.Println("-------he------")
-			var name, mtype, box string
-			results.Scan(&name, &mtype, &box)
-
-			DEBUG.Println("-------check the retrieve from the database------")
-			DEBUG.Printf("%s, %s, %+v \n", name, mtype, box)
-
-			metadata := ContextMetadata{}
-			metadata.Name = name
-			metadata.Type = mtype
-
-			switch mtype {
-			case "point":
-				var latitude, longitude float64
-				DEBUG.Println("-------he-2-----")
-				_, err := fmt.Scanf(box, "POINT(%f %f)", &longitude, &latitude)
-				if err == nil {
-					point := Point{}
-					point.Latitude = latitude
-					point.Longitude = longitude
-
-					metadata.Value = point
-				} else {
-					ERROR.Println(err)
-				}
-
-			case "polygon":
-				metadata.Value = box
-			}
-
-			registeredMetadatas = append(registeredMetadatas, metadata)
-		}
-		results.Close()
-
-		DEBUG.Println("========test==4=====")
-		DEBUG.Println(registeredMetadatas)
-
-		queryStatement = "SELECT name, ST_AsText(center), radius FROM geo_circle_tab WHERE geo_circle_tab.eid = $1;"
-		results, err = er.db.Query(queryStatement, eid)
-		if err != nil {
-			ERROR.Println(err)
-			DEBUG.Println("RETRIEVE ENTITY-END")
-			DEBUG.Println(entityID)
-			return nil
-		}
-		for results.Next() {
-			var name, mtype, center string
-			var radius float64
-			results.Scan(&name, &center, &radius)
-
-			metadata := ContextMetadata{}
-			metadata.Name = name
-			metadata.Type = mtype
-
-			circle := Circle{}
-
-			var latitude, longitude float64
-			_, err := fmt.Scanf(center, "POINT(%f %f)", &longitude, &latitude)
-			if err == nil {
-				circle.Latitude = latitude
-				circle.Longitude = longitude
-				circle.Radius = radius
-
-				metadata.Value = circle
-			}
-
-			registeredMetadatas = append(registeredMetadatas, metadata)
-		}
-		results.Close()
-
-		DEBUG.Println("========test==5=====")
-		DEBUG.Println(registeredMetadatas)
-
-		ctxRegistration.Metadata = registeredMetadatas
-
-		DEBUG.Println("RETRIEVE ENTITY-END")
-		DEBUG.Println(entityID)
-		DEBUG.Printf("%+v\n", ctxRegistration)
-
-		return &ctxRegistration
-	}
-
-	DEBUG.Println("RETRIEVE ENTITY-END")
-	DEBUG.Println(entityID)
-
-	return nil
-}
-
-*/
-
 func (er *EntityRepository) query(statement string) (*sql.Rows, error) {
 	return er.db.Query(statement)
 }
 
 func (er *EntityRepository) execDBQuery(queries []DBQuery) {
-	DEBUG.Println("===========SQL============")
 	for _, query := range queries {
 		query.Execute()
 	}
