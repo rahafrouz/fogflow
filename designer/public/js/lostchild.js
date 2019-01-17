@@ -332,6 +332,7 @@ function onCheckingTimer()
 	        
         // increase the search scope by updating the requirement
         geoscope.scopeValue.radius += radiusStepDistance;
+        curIntent.attributes.intent.value.geoscope = geoscope
         
         console.log(curIntent.attributes.intent.value);
         

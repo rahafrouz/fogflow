@@ -75,6 +75,8 @@ def publishMySelf():
     
     deviceCtxObj['metadata'] = {}
     deviceCtxObj['metadata']['location'] = {'type': 'point', 'value': {'latitude': profile['location']['latitude'], 'longitude': profile['location']['longitude'] }}
+    deviceCtxObj['metadata']['cameraID'] = {'type': 'string', 'value': profile['id']}
+
     
     updateContext(brokerURL, deviceCtxObj)
 
