@@ -45,6 +45,14 @@ type Point struct {
 	Longitude float64 `json:"longitude"`
 }
 
+func (p *Point) IsEmpty() bool {
+	if p.Latitude == 0 && p.Longitude == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
 type Circle struct {
 	Latitude  float64 `json:"centerLatitude"`
 	Longitude float64 `json:"centerLongitude"`

@@ -13,15 +13,35 @@ import (
 	. "github.com/smartfog/fogflow/common/ngsi"
 )
 
+type DBQuery struct {
+	statement *sql.Stmt
+	vars      []interface{}
+}
+
+func (q *DBQuery) Execute() {
+	_, err := q.statement.Exec(q.vars...)
+	if err != nil {
+		ERROR.Println(err)
+	}
+}
+
 type EntityRepository struct {
-	//connection to the backend database
+	// connection to the backend database
 	db *sql.DB
 
+	// cache all received registration in the memory for the performance reason
+	ctxRegistrationList      map[string]*ContextRegistration
+	ctxRegistrationList_lock sync.RWMutex
+
+	// lock to control the update of database
 	dbLock sync.RWMutex
 }
 
 func (er *EntityRepository) Init(config *DatabaseCfg) {
 	var dbExist = false
+
+	// initialize the registration list
+	er.ctxRegistrationList = make(map[string]*ContextRegistration)
 
 	for {
 		exist, err := checkDatabase(config)
@@ -61,53 +81,107 @@ func (er *EntityRepository) Close() {
 // update the registration in the repository and also
 // return a flag to indicate if there is anything in the repository before
 //
-func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextRegistration) bool {
+func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextRegistration) *ContextRegistration {
+	updatedRegistration := er.updateRegistrationInMemory(entity, registration)
+
+	// update the registration in the database as a background procedure
+	go er.updateRegistrationInDataBase(entity, registration)
+
+	// return the latest view of the registration for this entity
+	return updatedRegistration
+}
+
+//
+// for the performance purpose, we still keep the latest view of all registrations
+//
+func (er *EntityRepository) updateRegistrationInMemory(entity EntityId, registration *ContextRegistration) *ContextRegistration {
+	er.ctxRegistrationList_lock.Lock()
+	defer er.ctxRegistrationList_lock.Unlock()
+
+	eid := entity.ID
+
+	if existRegistration, exist := er.ctxRegistrationList[eid]; exist {
+		// if the registration already exists, update it with the received update
+
+		// update attribute table
+		for _, attr := range registration.ContextRegistrationAttributes {
+			for i, existAttr := range existRegistration.ContextRegistrationAttributes {
+				if existAttr.Name == attr.Name {
+					// remove the old one
+					existRegistration.ContextRegistrationAttributes = append(existRegistration.ContextRegistrationAttributes[:i], existRegistration.ContextRegistrationAttributes[i+1:]...)
+					break
+				}
+			}
+			// append the new one
+			existRegistration.ContextRegistrationAttributes = append(existRegistration.ContextRegistrationAttributes, attr)
+		}
+
+		// update metadata table
+		for _, meta := range registration.Metadata {
+			for i, existMeta := range existRegistration.Metadata {
+				if existMeta.Name == meta.Name {
+					// remove the old one
+					existRegistration.Metadata = append(existRegistration.Metadata[:i], existRegistration.Metadata[i+1:]...)
+					break
+				}
+			}
+			// append the new one
+			existRegistration.Metadata = append(existRegistration.Metadata, meta)
+		}
+
+		// update the provided URL
+		if len(registration.ProvidingApplication) > 0 {
+			existRegistration.ProvidingApplication = registration.ProvidingApplication
+		}
+	} else {
+		er.ctxRegistrationList[eid] = registration
+	}
+
+	return er.ctxRegistrationList[eid]
+}
+
+//
+// update the registration in the repository and also
+// return a flag to indicate if there is anything in the repository before
+//
+func (er *EntityRepository) updateRegistrationInDataBase(entity EntityId, registration *ContextRegistration) error {
 	er.dbLock.Lock()
 	defer er.dbLock.Unlock()
 
 	DEBUG.Println("UPDATE ENTITY-BEGIN")
 	DEBUG.Println(entity.ID)
 
-	statements := make([]string, 0)
-
-	var newEntityFlag = true
+	queries := make([]DBQuery, 0)
 
 	// update the entity table
-	queryStatement := fmt.Sprintf("SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = '%s'", entity.ID)
-	rows, err := er.query(queryStatement)
+	queryStatement := "SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = $1;"
+	rows, err := er.db.Query(queryStatement, entity.ID)
 	if err != nil {
-		return newEntityFlag
+		return err
 	}
 	if rows.Next() == false {
 		// insert new entity
-		insertEntity := fmt.Sprintf("INSERT INTO entity_tab(eid, type, isPattern, providerURL) VALUES('%s', '%s', '%t', '%s');",
-			entity.ID, entity.Type, entity.IsPattern,
-			registration.ProvidingApplication)
-		statements = append(statements, insertEntity)
-	} else {
-		// this entity already exists, to indicate whethere we need to retrieve back the latest and combined view for this registration
-		newEntityFlag = false
+		stmt, _ := er.db.Prepare("INSERT INTO entity_tab(eid, type, isPattern, providerURL) VALUES($1, $2, $3, $4);")
+		query := DBQuery{statement: stmt, vars: []interface{}{entity.ID, entity.Type, entity.IsPattern, registration.ProvidingApplication}}
+		queries = append(queries, query)
 	}
 	rows.Close()
 
 	// update attribute table
 	for _, attr := range registration.ContextRegistrationAttributes {
-		queryStatement := fmt.Sprintf("SELECT * FROM attr_tab WHERE attr_tab.eid = '%s' AND attr_tab.name = '%s';",
-			entity.ID, attr.Name)
-		rows, err := er.query(queryStatement)
+		queryStatement := "SELECT * FROM attr_tab WHERE attr_tab.eid = $1 AND attr_tab.name = $2;"
+		rows, err := er.db.Query(queryStatement, entity.ID, attr.Name)
 		if err == nil {
 			if rows.Next() == false {
 				// insert as new attribute
-				statement := fmt.Sprintf("INSERT INTO attr_tab(eid, name, type, isDomain) VALUES('%s', '%s', '%s', '%t');",
-					entity.ID, attr.Name, attr.Type, attr.IsDomain)
-
-				statements = append(statements, statement)
+				stmt, _ := er.db.Prepare(`INSERT INTO attr_tab(eid, name, type, isDomain) VALUES($1, $2, $3, $4);`)
+				query := DBQuery{statement: stmt, vars: []interface{}{entity.ID, attr.Name, attr.Type, attr.IsDomain}}
+				queries = append(queries, query)
 			} else {
 				// update as existing attribute
-				statement := fmt.Sprintf("UPDATE attr_tab SET type = '%s', isDomain = '%t' WHERE attr_tab.eid = '%s' AND attr_tab.name = '%s';",
-					attr.Type, attr.IsDomain, entity.ID, attr.Name)
-
-				statements = append(statements, statement)
+				stmt, _ := er.db.Prepare("UPDATE attr_tab SET type = $1, isDomain = $2 WHERE attr_tab.eid = $3 AND attr_tab.name = $4;")
+				query := DBQuery{statement: stmt, vars: []interface{}{attr.Type, attr.IsDomain, entity.ID, attr.Name}}
+				queries = append(queries, query)
 			}
 		}
 		rows.Close()
@@ -118,42 +192,50 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 		switch strings.ToLower(meta.Type) {
 		case "circle":
 			circle := meta.Value.(Circle)
-			queryStatement := fmt.Sprintf("SELECT * FROM geo_circle_tab WHERE geo_circle_tab.eid = '%s' AND geo_circle_tab.name = '%s';",
-				entity.ID, meta.Name)
-			rows, err := er.query(queryStatement)
+			queryStatement := "SELECT * FROM geo_circle_tab WHERE geo_circle_tab.eid = $1 AND geo_circle_tab.name = $2;"
+			rows, err := er.db.Query(queryStatement, entity.ID, meta.Name)
 			if err == nil {
 				if rows.Next() == false {
 					// insert as new attribute
-					statement := fmt.Sprintf("INSERT INTO geo_circle_tab(eid, name, type, center, radius) VALUES ('%s', '%s', '%s', ST_SetSRID(ST_MakePoint(%f, %f), 4326), %f);",
-						entity.ID, meta.Name, meta.Type, circle.Longitude, circle.Latitude, circle.Radius)
-					statements = append(statements, statement)
+					stmt, _ := er.db.Prepare("INSERT INTO geo_circle_tab(eid, name, type, center, radius) VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($4, $5), 4326), $6);")
+					query := DBQuery{statement: stmt, vars: []interface{}{entity.ID, meta.Name, meta.Type, circle.Longitude, circle.Latitude, circle.Radius}}
+					queries = append(queries, query)
 				} else {
-					// update as existing attribute
-					statement := fmt.Sprintf("UPDATE geo_circle_tab SET center = ST_SetSRID(ST_MakePoint(%f, %f), 4326) AND radius = %f WHERE geo_circle_tab.eid = '%s' AND geo_circle_tab.name = '%s';",
-						circle.Longitude, circle.Latitude, circle.Radius, entity.ID, meta.Name)
-
-					statements = append(statements, statement)
+					// update as existing attribute                                        ,
+					stmt, err := er.db.Prepare("UPDATE geo_circle_tab SET center = ST_SetSRID(ST_MakePoint($1, $2), 4326) AND radius = $3 WHERE geo_circle_tab.eid = $4 AND geo_circle_tab.name = $5;")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{circle.Longitude, circle.Latitude, circle.Radius, entity.ID, meta.Name}}
+					queries = append(queries, query)
 				}
 			}
 			rows.Close()
 
 		case "point":
 			point := meta.Value.(Point)
-			queryStatement := fmt.Sprintf("SELECT * FROM geo_box_tab WHERE geo_box_tab.eid = '%s' AND geo_box_tab.name = '%s';",
-				entity.ID, meta.Name)
-			rows, err := er.query(queryStatement)
+			queryStatement := "SELECT * FROM geo_box_tab WHERE geo_box_tab.eid = $1 AND geo_box_tab.name = $2;"
+			rows, err := er.db.Query(queryStatement, entity.ID, meta.Name)
 			if err == nil {
 				if rows.Next() == false {
 					// insert as new attribute
-					statement := fmt.Sprintf("INSERT INTO geo_box_tab(eid, name, type, box) VALUES ('%s', '%s', '%s', ST_SetSRID(ST_MakePoint(%f, %f), 4326));",
-						entity.ID, meta.Name, meta.Type, point.Longitude, point.Latitude)
-					statements = append(statements, statement)
+					stmt, err := er.db.Prepare("INSERT INTO geo_box_tab(eid, name, type, box) VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($4, $5), 4326));")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{entity.ID, meta.Name, meta.Type, point.Longitude, point.Latitude}}
+					queries = append(queries, query)
 				} else {
 					// update as existing attribute
-					statement := fmt.Sprintf("UPDATE geo_box_tab SET box = ST_SetSRID(ST_MakePoint(%f, %f), 4326) WHERE geo_box_tab.eid = '%s' AND geo_box_tab.name = '%s';",
-						point.Longitude, point.Latitude, entity.ID, meta.Name)
-
-					statements = append(statements, statement)
+					stmt, err := er.db.Prepare("UPDATE geo_box_tab SET box = ST_SetSRID(ST_MakePoint($1, $2), 4326) WHERE geo_box_tab.eid = $3 AND geo_box_tab.name = $4;")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{point.Longitude, point.Latitude, entity.ID, meta.Name}}
+					queries = append(queries, query)
 				}
 			}
 			rows.Close()
@@ -168,42 +250,53 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 				locationText = locationText + fmt.Sprintf("%f %f", point.Longitude, point.Latitude)
 			}
 
-			queryStatement := fmt.Sprintf("SELECT * FROM geo_box_tab WHERE geo_box_tab.eid = '%s' AND geo_box_tab.name = '%s';",
-				entity.ID, meta.Name)
-			rows, err := er.query(queryStatement)
+			queryStatement := "SELECT * FROM geo_box_tab WHERE geo_box_tab.eid = $1 AND geo_box_tab.name = $2;"
+			rows, err := er.db.Query(queryStatement, entity.ID, meta.Name)
 			if err == nil {
 				if rows.Next() == false {
 					// insert as new attribute
-					statement := fmt.Sprintf("INSERT INTO geo_box_tab(eid, name, type, box) VALUES ('%s', '%s', '%s', ST_MakePolygon(ST_GeomFromText('POLYGON((%s))', 4326)));",
-						entity.ID, meta.Name, meta.Type, locationText)
-					statements = append(statements, statement)
+					stmt, err := er.db.Prepare("INSERT INTO geo_box_tab(eid, name, type, box) VALUES ($1, $2, $3, ST_MakePolygon(ST_GeomFromText('POLYGON(($4))', 4326)));")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{entity.ID, meta.Name, meta.Type, locationText}}
+					queries = append(queries, query)
 				} else {
 					// update as existing attribute
-					statement := fmt.Sprintf("UPDATE geo_box_tab SET box = ST_MakePolygon(ST_GeomFromText('POLYGON((%s))', 4326)) WHERE geo_box_tab.eid = '%s' AND geo_box_tab.name = '%s';",
-						locationText, entity.ID, meta.Name)
-
-					statements = append(statements, statement)
+					stmt, err := er.db.Prepare("UPDATE geo_box_tab SET box = ST_MakePolygon(ST_GeomFromText('POLYGON(($1))', 4326)) WHERE geo_box_tab.eid = $2 AND geo_box_tab.name = $3;")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{locationText, entity.ID, meta.Name}}
+					queries = append(queries, query)
 				}
 			}
 			rows.Close()
 
 		default:
-			queryStatement := fmt.Sprintf("SELECT * FROM metadata_tab WHERE metadata_tab.eid = '%s' AND metadata_tab.name = '%s';",
-				entity.ID, meta.Name)
-			rows, err := er.query(queryStatement)
+			queryStatement := "SELECT * FROM metadata_tab WHERE metadata_tab.eid = $1 AND metadata_tab.name = $2;"
+			rows, err := er.db.Query(queryStatement, entity.ID, meta.Name)
 			if err == nil {
 				if rows.Next() == false {
 					// insert as new attribute
-					statement := fmt.Sprintf("INSERT INTO metadata_tab(eid, name, type, value) VALUES('%s', '%s', '%s', '%s');",
-						entity.ID, meta.Name, meta.Type, meta.Value)
-
-					statements = append(statements, statement)
+					stmt, err := er.db.Prepare("INSERT INTO metadata_tab(eid, name, type, value) VALUES($1, $2, $3, $4);")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{entity.ID, meta.Name, meta.Type, meta.Value}}
+					queries = append(queries, query)
 				} else {
 					// update as existing attribute
-					statement := fmt.Sprintf("UPDATE metadata_tab SET type = '%s', value = '%s' WHERE metadata_tab.eid = '%s' AND metadata_tab.name = '%s';",
-						meta.Type, meta.Value, entity.ID, meta.Name)
-
-					statements = append(statements, statement)
+					stmt, err := er.db.Prepare("UPDATE metadata_tab SET type = $1, value = $2 WHERE metadata_tab.eid = $3 AND metadata_tab.name = $4;")
+					if err != nil {
+						ERROR.Println(err)
+						return err
+					}
+					query := DBQuery{statement: stmt, vars: []interface{}{meta.Type, meta.Value, entity.ID, meta.Name}}
+					queries = append(queries, query)
 				}
 			}
 			rows.Close()
@@ -211,14 +304,17 @@ func (er *EntityRepository) updateEntity(entity EntityId, registration *ContextR
 	}
 
 	// apply the update once for the entire registration request, within a transaction
-	er.exec(statements)
+	er.execDBQuery(queries)
 
 	DEBUG.Println("UPDATE ENTITY-END")
 	DEBUG.Println(entity.ID)
 
-	return newEntityFlag
+	return nil
 }
 
+//
+// query always goes to the database, just in order to take advantage of geoquery
+//
 func (er *EntityRepository) queryEntities(entities []EntityId, attributes []string, restriction Restriction) map[string][]EntityId {
 	er.dbLock.RLock()
 	defer er.dbLock.RUnlock()
@@ -374,15 +470,13 @@ func (er *EntityRepository) deleteEntity(eid string) {
 	DEBUG.Println(eid)
 
 	// find out the associated entity
-	queryStatement := fmt.Sprintf("SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = '%s'", eid)
-
-	// perform the query
-	rows, err := er.query(queryStatement)
+	queryStatement := "SELECT entity_tab.eid, entity_tab.type, entity_tab.providerurl FROM entity_tab WHERE eid = $1;"
+	rows, err := er.db.Query(queryStatement, eid)
 	if err != nil {
 		return
 	}
 
-	statements := make([]string, 0)
+	queries := make([]DBQuery, 0)
 
 	for rows.Next() {
 		var entityID, entityType, providerURL string
@@ -394,27 +488,32 @@ func (er *EntityRepository) deleteEntity(eid string) {
 		}
 
 		// remove all attributes related to this entity
-		executeStatement := fmt.Sprintf("DELETE FROM attr_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ := er.db.Prepare("DELETE FROM attr_tab WHERE eid = $1;")
+		query := DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 
 		// remove all metadata related to this entity
-		executeStatement = fmt.Sprintf("DELETE FROM metadata_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ = er.db.Prepare("DELETE FROM metadata_tab WHERE eid = $1;")
+		query = DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 
 		// remove all geo-metadata related to this entity
-		executeStatement = fmt.Sprintf("DELETE FROM geo_box_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ = er.db.Prepare("DELETE FROM geo_box_tab WHERE eid = $1;")
+		query = DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 
-		executeStatement = fmt.Sprintf("DELETE FROM geo_circle_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ = er.db.Prepare("DELETE FROM geo_circle_tab WHERE eid = $1;")
+		query = DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 	}
 	rows.Close()
 
 	// remove the entity
-	executeStatement := fmt.Sprintf("DELETE FROM entity_tab WHERE eid = '%s'", eid)
-	statements = append(statements, executeStatement)
+	stmt, _ := er.db.Prepare("DELETE FROM entity_tab WHERE eid =  $1;")
+	query := DBQuery{statement: stmt, vars: []interface{}{eid}}
+	queries = append(queries, query)
 
-	er.exec(statements)
+	er.execDBQuery(queries)
 
 	DEBUG.Println("DELETE ENTITY-BEGIN")
 	DEBUG.Println(eid)
@@ -422,45 +521,55 @@ func (er *EntityRepository) deleteEntity(eid string) {
 
 func (er *EntityRepository) ProviderLeft(providerURL string) {
 	// find out all entities associated with this broker
-	queryStatement := fmt.Sprintf("SELECT entity_tab.eid FROM entity_tab WHERE providerurl = '%s'", providerURL)
-
-	DEBUG.Println(queryStatement)
-
-	// perform the query
-	rows, err := er.query(queryStatement)
+	queryStatement := "SELECT entity_tab.eid FROM entity_tab WHERE providerurl = $1;"
+	rows, err := er.db.Query(queryStatement, providerURL)
 	if err != nil {
 		return
 	}
 
-	statements := make([]string, 0)
+	queries := make([]DBQuery, 0)
 
 	for rows.Next() {
 		var entityID string
 		rows.Scan(&entityID)
 
 		// remove all attributes related to this entity
-		executeStatement := fmt.Sprintf("DELETE FROM attr_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ := er.db.Prepare("DELETE FROM attr_tab WHERE eid = $1;")
+		query := DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 
 		// remove all metadata related to this entity
-		executeStatement = fmt.Sprintf("DELETE FROM metadata_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ = er.db.Prepare("DELETE FROM metadata_tab WHERE eid = $1;")
+		query = DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 
 		// remove all geo-metadata related to this entity
-		executeStatement = fmt.Sprintf("DELETE FROM geo_box_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
-		executeStatement = fmt.Sprintf("DELETE FROM geo_circle_tab WHERE eid = '%s'", entityID)
-		statements = append(statements, executeStatement)
+		stmt, _ = er.db.Prepare("DELETE FROM geo_box_tab WHERE eid = $1;")
+		query = DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
+
+		stmt, _ = er.db.Prepare("DELETE FROM geo_circle_tab WHERE eid = $1;")
+		query = DBQuery{statement: stmt, vars: []interface{}{entityID}}
+		queries = append(queries, query)
 	}
 	rows.Close()
 
 	// remove all entities related to this registration
-	executeStatement := fmt.Sprintf("DELETE FROM entity_tab WHERE providerurl = '%s'", providerURL)
-	statements = append(statements, executeStatement)
+	stmt, _ := er.db.Prepare("DELETE FROM entity_tab WHERE providerurl = $1;")
+	query := DBQuery{statement: stmt, vars: []interface{}{providerURL}}
+	queries = append(queries, query)
 
-	er.exec(statements)
+	er.execDBQuery(queries)
 }
 
+func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegistration {
+	er.dbLock.RLock()
+	defer er.dbLock.RUnlock()
+
+	return er.ctxRegistrationList[entityID]
+}
+
+/*  disable this due to the performance reason
 func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegistration {
 	er.dbLock.RLock()
 	defer er.dbLock.RUnlock()
@@ -469,9 +578,8 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 	DEBUG.Println(entityID)
 
 	// query all entities associated with this registrationId
-	queryStatement := fmt.Sprintf("SELECT eid, type, isPattern, providerURL FROM entity_tab WHERE entity_tab.eid = '%s';", entityID)
-
-	rows, err := er.query(queryStatement)
+	queryStatement := "SELECT eid, type, isPattern, providerURL FROM entity_tab WHERE entity_tab.eid = $1;"
+	rows, err := er.db.Query(queryStatement, entityID)
 	if err != nil {
 		ERROR.Println(err)
 		DEBUG.Println("RETRIEVE ENTITY-END")
@@ -498,6 +606,9 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 			entity.IsPattern = false
 		}
 
+		DEBUG.Println("========test=======")
+		DEBUG.Println(entity)
+
 		entities = append(entities, entity)
 
 		ctxRegistration.EntityIdList = entities
@@ -506,8 +617,14 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 		// query all attributes that belong to those entities
 		registeredAttributes := make([]ContextRegistrationAttribute, 0)
 
-		queryStatement = fmt.Sprintf("SELECT name, type, isDomain FROM attr_tab WHERE attr_tab.eid = '%s';", eid)
-		results, _ := er.query(queryStatement)
+		queryStatement := "SELECT name, type, isDomain FROM attr_tab WHERE attr_tab.eid = $1;"
+		results, err := er.db.Query(queryStatement, eid)
+		if err != nil {
+			ERROR.Println(err)
+			DEBUG.Println("RETRIEVE ENTITY-END")
+			DEBUG.Println(entityID)
+			return nil
+		}
 		for results.Next() {
 			var name, attributeType, isDomain string
 			results.Scan(&name, &attributeType, &isDomain)
@@ -526,13 +643,22 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 		}
 		results.Close()
 
+		DEBUG.Println("========test==2=====")
+		DEBUG.Println(registeredAttributes)
+
 		ctxRegistration.ContextRegistrationAttributes = registeredAttributes
 
 		// query all metadatas that belong to those entities
 		registeredMetadatas := make([]ContextMetadata, 0)
 
-		queryStatement = fmt.Sprintf("SELECT name, type, value FROM metadata_tab WHERE metadata_tab.eid = '%s';", eid)
-		results, _ = er.query(queryStatement)
+		queryStatement = "SELECT name, type, value FROM metadata_tab WHERE metadata_tab.eid = $1;"
+		results, err = er.db.Query(queryStatement, eid)
+		if err != nil {
+			ERROR.Println(err)
+			DEBUG.Println("RETRIEVE ENTITY-END")
+			DEBUG.Println(entityID)
+			return nil
+		}
 		for results.Next() {
 			var name, mdType, value string
 			results.Scan(&name, &mdType, &value)
@@ -546,10 +672,20 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 		}
 		results.Close()
 
+		DEBUG.Println("========test==3=====")
+		DEBUG.Println(registeredMetadatas)
+
 		// query all geo-related metadatas that belong to those entities
-		queryStatement = fmt.Sprintf("SELECT name, type, ST_AsText(box) FROM geo_box_tab WHERE geo_box_tab.eid = '%s';", eid)
-		results, _ = er.query(queryStatement)
+		queryStatement = "SELECT name, type, ST_AsText(box) FROM geo_box_tab WHERE geo_box_tab.eid = $1;"
+		results, err = er.db.Query(queryStatement, eid)
+		if err != nil {
+			ERROR.Println(err)
+			DEBUG.Println("RETRIEVE ENTITY-END")
+			DEBUG.Println(entityID)
+			return nil
+		}
 		for results.Next() {
+			DEBUG.Println("-------he------")
 			var name, mtype, box string
 			results.Scan(&name, &mtype, &box)
 
@@ -563,6 +699,7 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 			switch mtype {
 			case "point":
 				var latitude, longitude float64
+				DEBUG.Println("-------he-2-----")
 				_, err := fmt.Scanf(box, "POINT(%f %f)", &longitude, &latitude)
 				if err == nil {
 					point := Point{}
@@ -570,6 +707,8 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 					point.Longitude = longitude
 
 					metadata.Value = point
+				} else {
+					ERROR.Println(err)
 				}
 
 			case "polygon":
@@ -580,8 +719,17 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 		}
 		results.Close()
 
-		queryStatement = fmt.Sprintf("SELECT name, ST_AsText(center), radius FROM geo_circle_tab WHERE geo_circle_tab.eid = '%s';", eid)
-		results, _ = er.query(queryStatement)
+		DEBUG.Println("========test==4=====")
+		DEBUG.Println(registeredMetadatas)
+
+		queryStatement = "SELECT name, ST_AsText(center), radius FROM geo_circle_tab WHERE geo_circle_tab.eid = $1;"
+		results, err = er.db.Query(queryStatement, eid)
+		if err != nil {
+			ERROR.Println(err)
+			DEBUG.Println("RETRIEVE ENTITY-END")
+			DEBUG.Println(entityID)
+			return nil
+		}
 		for results.Next() {
 			var name, mtype, center string
 			var radius float64
@@ -607,10 +755,14 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 		}
 		results.Close()
 
+		DEBUG.Println("========test==5=====")
+		DEBUG.Println(registeredMetadatas)
+
 		ctxRegistration.Metadata = registeredMetadatas
 
 		DEBUG.Println("RETRIEVE ENTITY-END")
 		DEBUG.Println(entityID)
+		DEBUG.Printf("%+v\n", ctxRegistration)
 
 		return &ctxRegistration
 	}
@@ -621,14 +773,15 @@ func (er *EntityRepository) retrieveRegistration(entityID string) *ContextRegist
 	return nil
 }
 
+*/
+
 func (er *EntityRepository) query(statement string) (*sql.Rows, error) {
 	return er.db.Query(statement)
 }
 
-func (er *EntityRepository) exec(statements []string) {
+func (er *EntityRepository) execDBQuery(queries []DBQuery) {
 	DEBUG.Println("===========SQL============")
-	DEBUG.Println(statements)
-	for _, statement := range statements {
-		er.db.Exec(statement)
+	for _, query := range queries {
+		query.Execute()
 	}
 }

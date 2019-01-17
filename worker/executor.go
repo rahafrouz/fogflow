@@ -630,10 +630,17 @@ func (e *Executor) TerminateTask(taskID string, paused bool) {
 }
 
 func (e *Executor) terminateAllTasks() {
-	var wg sync.WaitGroup
-	wg.Add(len(e.taskInstances))
+	idList := make([]string, 0)
+	e.taskMap_lock.RLock()
+	for id, _ := range e.taskInstances {
+		idList = append(idList, id)
+	}
+	e.taskMap_lock.RUnlock()
 
-	for taskID, _ := range e.taskInstances {
+	var wg sync.WaitGroup
+	wg.Add(len(idList))
+
+	for _, taskID := range idList {
 		go func(tID string) {
 			defer wg.Done()
 			e.TerminateTask(tID, false)

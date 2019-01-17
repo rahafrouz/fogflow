@@ -151,20 +151,11 @@ func (fd *FastDiscovery) matchingWithSubscription(registration *ContextRegistrat
 func (fd *FastDiscovery) updateRegistration(registReq *RegisterContextRequest) {
 	for _, registration := range registReq.ContextRegistrations {
 		for _, entity := range registration.EntityIdList {
-			var updatedRegistration *ContextRegistration
-
-			newEntityFlag := fd.repository.updateEntity(entity, &registration)
-
-			if newEntityFlag == false {
-				updatedRegistration = fd.repository.retrieveRegistration(entity.ID)
-			} else {
-				updatedRegistration = &registration
-			}
+			// update the registration, both in the memory cache and in the database
+			updatedRegistration := fd.repository.updateEntity(entity, &registration)
 
 			// inform the associated subscribers after updating the repository
-			if updatedRegistration != nil {
-				fd.notifySubscribers(updatedRegistration, "UPDATE")
-			}
+			go fd.notifySubscribers(updatedRegistration, "UPDATE")
 		}
 	}
 }
