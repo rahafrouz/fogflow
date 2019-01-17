@@ -416,9 +416,6 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 	// perform the update action accordingly
 	switch updateCtxReq.UpdateAction {
 	case "UPDATE":
-		INFO.Println("===========update========")
-		INFO.Println(updateCtxReq)
-
 		for _, ctxElem := range updateCtxReq.ContextElements {
 			geoscope := ctxElem.GetScope()
 
@@ -430,7 +427,6 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 					ERROR.Println("error happens when querying the site list from IoT Discovery")
 					ERROR.Println(err)
 				} else {
-					INFO.Println(siteList)
 					for _, site := range siteList {
 						if site.IsLocalSite == true {
 							tb.UpdateContext2LocalSite(&ctxElem)
@@ -443,9 +439,6 @@ func (tb *ThinBroker) handleExternalUpdateContext(updateCtxReq *UpdateContextReq
 		}
 
 	case "DELETE":
-		INFO.Println("===========delete========")
-		INFO.Println(updateCtxReq)
-
 		for _, ctxElem := range updateCtxReq.ContextElements {
 			element := tb.getEntity(ctxElem.Entity.ID)
 			if element != nil {
@@ -916,8 +909,6 @@ func (tb *ThinBroker) handleNGSI9Notify(mainSubID string, notifyContextAvailabil
 }
 
 func (tb *ThinBroker) registerContextElement(element *ContextElement) {
-	DEBUG.Printf("======START TO REGISTER an element %+v\n", element)
-
 	registration := ContextRegistration{}
 
 	entities := make([]EntityId, 0)
@@ -941,8 +932,6 @@ func (tb *ThinBroker) registerContextElement(element *ContextElement) {
 	registerCtxReq.RegistrationId = ""
 	registerCtxReq.ContextRegistrations = []ContextRegistration{registration}
 	registerCtxReq.Duration = "PT10M"
-
-	DEBUG.Printf("======send out registeration %+v\n", registerCtxReq)
 
 	client := NGSI9Client{IoTDiscoveryURL: tb.IoTDiscoveryURL}
 	_, err := client.RegisterContext(&registerCtxReq)
