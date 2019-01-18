@@ -297,9 +297,9 @@ function sendIntent()
     console.log(JSON.stringify(intentCtxObj));
         
     // check if the dynamic task controlling is selected
-    var scopeUpdating = document.getElementById('ScopeUpdating').checked;
-    var checkingInterval = parseInt($('#checkingInterval option:selected').val(), 10);    
-    var radiusInterval = parseInt($('#radiusInterval option:selected').val(), 10);            
+    //var scopeUpdating = document.getElementById('ScopeUpdating').checked;
+    //var checkingInterval = parseInt($('#checkingInterval option:selected').val(), 10);    
+    //var radiusInterval = parseInt($('#radiusInterval option:selected').val(), 10);            
         
     client.updateContext(intentCtxObj).then( function(data) {
         console.log(data);  
@@ -307,13 +307,15 @@ function sendIntent()
         
         // change the button status
 		$('#enableService').prop('disabled', true);
-		$('#disableService').prop('disabled', false);      
-        
+		$('#disableService').prop('disabled', false);     
+         
+        /*
         if (scopeUpdating == true) {
             console.log('start the timer for checking results and updating the search scope')
             checkingTimer = setInterval(onCheckingTimer, checkingInterval * 1000);
             radiusStepDistance = radiusInterval;
-        }                       
+        }*/
+                           
     }).catch( function(error) {
         console.log('failed to submit the defined intent');
     });            
