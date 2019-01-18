@@ -1,0 +1,32 @@
+{
+    "coreservice_ip": "10.156.0.10",
+    "external_hostip": "10.156.0.10",
+    "internal_hostip": "172.17.0.1",
+    "physical_location":{
+        "longitude": -1.124129,
+        "latitude": 37.997849 
+    },
+    "geohash_precision": 2,
+    "logging":{
+        "info":"stdout",
+        "error":"stderr",
+        "protocol": "stdout",
+        "debug": "stdout"
+    },
+    "broker": {
+        "port": 8073
+    },
+    "discovery": {
+        "port": 443
+    },
+    "worker": {
+        "container_autoremove": true,
+        "start_actual_task": true
+    },
+    "rabbitmq": {
+        "port": 5672,
+        "username": "admin",
+        "password":"mypass"
+    }
+}
+

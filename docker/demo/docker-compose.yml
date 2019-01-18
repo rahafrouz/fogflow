@@ -58,7 +58,7 @@ services:
     edge_broker1:
         image: fogflow/broker:intent
         volumes:
-            - ./edge1.json:/config.json                        
+            - ./edge1a.json:/config.json                        
         ports:
             - 8071:8071
         depends_on: 
@@ -67,14 +67,13 @@ services:
         image: fogflow/worker:intent
         volumes:
             - /tmp:/tmp        
-            - ./edge1.json:/config.json                
+            - ./edge1a.json:/config.json                
             - /var/run/docker.sock:/var/run/docker.sock                    
-
 
     edge_broker2:
         image: fogflow/broker:intent
         volumes:
-            - ./edge2.json:/config.json                        
+            - ./edge2a.json:/config.json                        
         ports:
             - 8072:8072
         depends_on: 
@@ -83,6 +82,70 @@ services:
         image: fogflow/worker:intent
         volumes:
             - /tmp:/tmp        
-            - ./edge2.json:/config.json                
+            - ./edge2a.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+
+
+    edge_broker3:
+        image: fogflow/broker:intent
+        volumes:
+            - ./edge3a.json:/config.json                        
+        ports:
+            - 8073:8073
+        depends_on: 
+            - discovery
+    edge_worker3:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge3a.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+
+
+    edge_broker4:
+        image: fogflow/broker:intent
+        volumes:
+            - ./edge4a.json:/config.json                        
+        ports:
+            - 8074:8074
+        depends_on: 
+            - discovery
+    edge_worker4:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge4a.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+
+
+    edge_broker5:
+        image: fogflow/broker:intent
+        volumes:
+            - ./edge5a.json:/config.json                        
+        ports:
+            - 8075:8075
+        depends_on: 
+            - discovery
+    edge_worker5:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge5a.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+
+
+    edge_broker6:
+        image: fogflow/broker:intent
+        volumes:
+            - ./edge6a.json:/config.json                        
+        ports:
+            - 8076:8076
+        depends_on: 
+            - discovery
+    edge_worker6:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge6a.json:/config.json                
             - /var/run/docker.sock:/var/run/docker.sock                    
 
