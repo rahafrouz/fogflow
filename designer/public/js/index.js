@@ -589,16 +589,35 @@ function registerNewDevice()
     var url = 'http://' + config.agentIP + ':' + config.webSrvPort + '/photo/' + contentImageFileName;
     newDeviceObject.attributes.url = {type: 'string', value: url};       
     newDeviceObject.attributes.iconURL = {type: 'string', value: '/photo/' + iconImageFileName};
+    
+    if (type == "PowerPanel") {
+        newDeviceObject.attributes.usage = {
+            type: 'integer',
+            value: 20
+            };   
+        newDeviceObject.attributes.shop = {
+            type: 'string',
+            value: id
+        };             
+    } 
             
     newDeviceObject.metadata = {};    
     newDeviceObject.metadata.location = {
         type: 'point',
         value: {'latitude': locationOfNewDevice.lat, 'longitude': locationOfNewDevice.lng}
     };       
-    newDeviceObject.metadata.cameraID = {
-        type: 'string',
-        value: id
-    };              
+    
+    if (type == "PowerPanel") {
+        newDeviceObject.metadata.shop = {
+            type: 'string',
+            value: id
+        };                     
+    } else if (type == "Camera") {
+        newDeviceObject.metadata.cameraID = {
+            type: 'string',
+            value: id
+        };          
+    }            
 
     client.updateContext(newDeviceObject).then( function(data) {
         console.log(data);
