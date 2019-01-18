@@ -1,6 +1,6 @@
 {
-    "coreservice_ip": "10.156.0.5",
-    "external_hostip": "10.156.0.5",
+    "coreservice_ip": "10.156.0.10",
+    "external_hostip": "10.156.0.10",
     "internal_hostip": "172.17.0.1",
     "physical_location":{
         "longitude": 138.222411,
@@ -14,13 +14,13 @@
         "debug": "stdout"
     },
     "broker": {
-        "port": 8072
+        "port": 8080
     },
     "discovery": {
         "port": 443
     },
     "worker": {
-        "container_autoremove": false,
+        "container_autoremove": true,
         "start_actual_task": true
     },
     "rabbitmq": {

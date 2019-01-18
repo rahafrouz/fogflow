@@ -1,6 +1,6 @@
 {
-    "discoveryURL": "http://35.198.104.115:443/ngsi9",
-    "myIP": "127.0.0.1",
+    "discoveryURL": "http://10.156.0.10:443/ngsi9",
+    "myIP": "10.156.0.10",
     "myPort": 8092,
     "location": {
         "latitude": 36.146094,

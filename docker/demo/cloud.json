@@ -1,9 +1,9 @@
 {
-    "root_discovery": "10.156.0.5:443",     
-    "webportal_ip": "35.198.104.115",     
-    "coreservice_ip": "10.156.0.5",   
-    "external_hostip": "10.156.0.5",         
-    "internal_hostip": "10.156.0.5",  
+    "root_discovery": "10.156.0.10:443",     
+    "webportal_ip": "35.246.218.57",     
+    "coreservice_ip": "10.156.0.10",   
+    "external_hostip": "10.156.0.10",         
+    "internal_hostip": "10.156.0.10",  
     "physical_location":{
         "longitude": 139.709059,
         "latitude": 35.692221
@@ -33,7 +33,7 @@
         "ngsi_agent_port": 1060    
     },
     "worker": {
-        "container_autoremove": false,
+        "container_autoremove": true,
         "start_actual_task": true               
     },
     "designer": {

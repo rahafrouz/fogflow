@@ -54,19 +54,41 @@ services:
             - 5672:5672
         environment:
             - RABBITMQ_PASS=mypass   
-
     edge_worker1:
         image: fogflow/worker:intent
         volumes:
             - /tmp:/tmp        
             - ./edge1.json:/config.json                
             - /var/run/docker.sock:/var/run/docker.sock                    
-
-
     edge_worker2:
         image: fogflow/worker:intent
         volumes:
             - /tmp:/tmp        
             - ./edge2.json:/config.json                
             - /var/run/docker.sock:/var/run/docker.sock                    
+    edge_worker3:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge3.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+    edge_worker4:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge4.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+    edge_worker5:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge5.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+    edge_worker6:
+        image: fogflow/worker:intent
+        volumes:
+            - /tmp:/tmp        
+            - ./edge6.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock                    
+
 

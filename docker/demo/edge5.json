@@ -3,8 +3,8 @@
     "external_hostip": "10.156.0.10",
     "internal_hostip": "172.17.0.1",
     "physical_location":{
-        "longitude": 136.923565,
-        "latitude": 35.138575
+        "longitude": -1.128292,
+        "latitude": 37.986957 
     },
     "geohash_precision": 2,
     "logging":{
