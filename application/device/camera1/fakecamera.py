@@ -167,7 +167,7 @@ def handleTimer():
     #publishMySelf()
     print 'publishing my url'
         
-    timer = threading.Timer(2, handleTimer)
+    timer = threading.Timer(5, handleTimer)
     timer.start()
 
 def run():

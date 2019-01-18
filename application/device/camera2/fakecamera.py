@@ -169,7 +169,7 @@ def handleTimer():
     publishMySelf()
     print 'publishing my url'
         
-    timer = threading.Timer(2, handleTimer)
+    timer = threading.Timer(10, handleTimer)
     timer.start()
 
 def run():
