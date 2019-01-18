@@ -89,7 +89,7 @@ function handleNotify(contextObj)
 {
     console.log(contextObj);
     
-    if (curRequirement != null) {
+    if (curIntent != null) {
         personsFound.push(contextObj);
     }
 	
@@ -233,15 +233,15 @@ function showMgt()
     html += '<img id="image_upload_preview" src="' + '/photo/lostchild.png?' +  new Date().getTime() + '" alt="target" style="width: 100px; height: 100px"></img>';      
     html += '</div>'; 
 
-    html += '<div class="input-prepend"><label class="checkbox"><input type="checkbox" id="ScopeUpdating" value="option1">';
-    html += 'automatically updating the search scope</label>';
-    html += '<select id="checkingInterval"><option value="5">5 seconds</option><option value="30">30 seconds</option><option  value="60">1 minute</option><option  value="120">2 minutes</option><option  value="300">5 minutes</option></select>';        
-    html += '</div>';    
+//    html += '<div class="input-prepend"><label class="checkbox"><input type="checkbox" id="ScopeUpdating" value="option1">';
+//    html += 'automatically updating the search scope</label>';
+//    html += '<select id="checkingInterval"><option value="5">5 seconds</option><option value="30">30 seconds</option><option  value="60">1 minute</option><option  value="120">2 minutes</option><option  value="300">5 minutes</option></select>';        
+//    html += '</div>';    
 
-    html += '<div class="input-prepend">';
-    html += '<label>setting the increase of radius</label>';
-    html += '<select id="radiusInterval"><option  value="10000">10000</option><option  value="20000">20000</option><option  value="50000">50000</option></select>';        
-    html += 'meters</div>';    
+//    html += '<div class="input-prepend">';
+//    html += '<label>setting the increase of radius</label>';
+//    html += '<select id="radiusInterval"><option  value="10000">10000</option><option  value="20000">20000</option><option  value="50000">50000</option></select>';        
+//    html += 'meters</div>';    
     
     html += '<div id="map"  style="width: 700px; height: 500px"></div>';                
 
