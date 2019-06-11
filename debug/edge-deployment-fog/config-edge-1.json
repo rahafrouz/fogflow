@@ -12,7 +12,7 @@
     },
     "logical_location": {
         "node_no": 2,
-        "site_no": 2,
+        "site_no": EDGENUMBER,
         "layer_no": 3,
         "parent_site_no": 1
     },
