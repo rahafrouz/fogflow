@@ -1,0 +1,17 @@
+version: "2"
+services:
+    cloud_worker:
+        image: fogflow/worker
+        volumes:
+            - /tmp:/tmp        
+            - ./config-edge-1.json:/config.json                
+            - /var/run/docker.sock:/var/run/docker.sock
+    cadvisor:
+        image: google/cadvisor
+        ports:
+            - 9092:8080
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:rw
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
