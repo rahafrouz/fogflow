@@ -1,7 +1,7 @@
 {
     "webportal_ip": "13.53.194.18",
     "coreservice_ip": "13.53.194.18",
-    "external_hostip": "13.53.194.18",
+    "external_hostip": "EDGEADDRESS",
     "internal_hostip": "172.17.0.1",
     "physical_location":{
         "longitude": 129.709059,
