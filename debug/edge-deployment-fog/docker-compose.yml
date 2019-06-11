@@ -18,6 +18,6 @@ services:
     broker:
         image: fogflow/broker
         volumes:
-            - ./config.json:/config.json
+            - ./config-edge-1.json:/config.json
         ports:
             - 8080:8080
