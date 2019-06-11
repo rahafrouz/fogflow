@@ -42,8 +42,8 @@
     },
     "worker": {
         "container_autoremove": false    ,
-        "edge_address": "1.1.1.2",
-        "cadvisor_port": 9090
+        "edge_address": "172.17.0.1",
+        "cadvisor_port": 9092
     },
     "designer": {
         "webSrvPort": 80,

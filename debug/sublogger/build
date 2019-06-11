@@ -1,0 +1,9 @@
+go get
+
+#build the linux version (amd64) of master
+env GOOS=linux GOARCH=amd64 go build  -a  -o sublogger
+docker build -t "rahafrouz/fogflow-sublogger:aws" .
+
+#pushing to dockerhub
+echo "pushing sublogger to dockerhub"
+docker push rahafrouz/fogflow-sublogger:aws

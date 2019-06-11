@@ -35,13 +35,15 @@
     },
     "broker": {
         "port": 8080,
-        "websocket": 8090        
-    },    
+        "websocket": 8090,
+        "has_memory": true,
+        "prom_pushgateway": "172.17.0.1:9999"
+    },
     "master": {
         "ngsi_agent_port": 1060         
     },
     "worker": {
-        "container_autoremove": false    ,
+        "container_autoremove": false,
         "edge_address": "172.17.0.1",
         "cadvisor_port": 9091
     },
