@@ -7,3 +7,4 @@ docker build -t "rahafrouz/fogflow-sublogger:aws" .
 #pushing to dockerhub
 echo "pushing sublogger to dockerhub"
 docker push rahafrouz/fogflow-sublogger:aws
+

@@ -158,6 +158,7 @@ func (m * Main)sendDataToEdgeBroker(edge string, carid int, imageid int ){
 	defer res.Body.Close()
 }
 func (m * Main)subscribeToResults(edgeAddress string){
+
 	url := edgeAddress + "/ngsi10/subscribeContext"
 	query:= fmt.Sprintf("{\n    \"entities\": [\n        {\n            \"id\": \".*\",\n            \"type\": \"experiment.car.counted.faces\",\n            \"isPattern\": true\n        }\n    ],\n    \"attributes\": [\n        \n    ],\n    \"reference\": \"%v\",\n    \"restriction\": {\n        \"attributeExpression\": \"\"\n    }\n}\n", m.myaddress)
 	payload := strings.NewReader(query)
@@ -167,8 +168,10 @@ func (m * Main)subscribeToResults(edgeAddress string){
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 
-	res, _ := http.DefaultClient.Do(req)
-
+	res, err := http.DefaultClient.Do(req)
+	if err!=nil{
+		fmt.Println("Error subscribing to ",edgeAddress,err)
+	}
 	defer res.Body.Close()
 	//body, _ := ioutil.ReadAll(res.Body)
 	//
