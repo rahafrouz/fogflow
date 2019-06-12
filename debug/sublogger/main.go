@@ -38,8 +38,8 @@ func (m * Main)main() {
 	m.edges = [10]string{"http://edge0:8080","http://edge1:8080","http://edge2:8080","http://edge3:8080","http://edge4:8080","http://edge5:8080","http://edge6:8080","http://edge7:8080","http://edge8:8080","http://edge9:8080"}
 	m.myaddress = "http://13.48.6.180:6666"
 	m.DEVICE_COUNT=1
-	m.MAX_DEVICE_COUNT=12
-	m.MAX_DATA_COUNT=100
+	m.MAX_DEVICE_COUNT=20
+	m.MAX_DATA_COUNT=500
 	m.DATA_COUNT =2
 
 
@@ -169,6 +169,7 @@ func (m * Main)subscribeToResults(edgeAddress string){
 	req.Header.Add("Accept", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
+	fmt.Println("subscribed to edge",edgeAddress)
 	if err!=nil{
 		fmt.Println("Error subscribing to ",edgeAddress,err)
 	}
@@ -238,7 +239,7 @@ func (m * Main)registerDevices() {
 	for i:=1; i<m.MAX_DEVICE_COUNT; i++ {
 		fmt.Println("Registring Device %d", i)
 		m.registerDevice(i)
-		time.Sleep(1*time.Second)
+		time.Sleep(2*time.Second)
 		m.DEVICE_COUNT += 1
 	}
 }
