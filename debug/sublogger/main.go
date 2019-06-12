@@ -183,11 +183,11 @@ func (m * Main)startExperiment() {
 
 
 	fmt.Println("Starting the experiment. Going to wait for 10 seconds to boot up the system")
-	time.Sleep(20* time.Second)
+	time.Sleep(2* time.Second)
 
 	fmt.Println("Registering Docker image to the system (Facecounter)... ")
 	m.registerFaceCounter()
-	time.Sleep(6* time.Second)
+	time.Sleep(3* time.Second)
 
 
 	fmt.Println("Subscribing to output to all edge nodes")
