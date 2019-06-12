@@ -82,7 +82,7 @@ services:
             - ../prom/change_config:/etc/prometheus/change_config
         healthcheck:
             test: |
-                chmod 777 /etc/prometheus/tgroups &&
+                su admin && chmod 777 /etc/prometheus/tgroups &&
                 chmod 777 /etc/prometheus/tgroups/*
                 /etc/prometheus/change_config &
             interval: 5s
