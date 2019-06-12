@@ -57,7 +57,7 @@
         "password":"mypass"
     },
     "prometheus": {
-        "address": "172.17.0.1",
+        "address": "13.53.194.18",
         "data_port": 9090,
         "admin_port": 4545
     }
