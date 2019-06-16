@@ -18,7 +18,7 @@ type Main struct {
 	receiveFileHanlder chan []string
 	sendFileHanlder chan []string
 	brokerurl string
-	edges  [10]string
+	edges  [2]string
 	myaddress string
 	DEVICE_COUNT int
 	MAX_DEVICE_COUNT int
@@ -35,12 +35,13 @@ func main(){
 
 func (m * Main)main() {
 	m.brokerurl = "http://master:8080"
-	m.edges = [10]string{"http://edge0:8080","http://edge1:8080","http://edge2:8080","http://edge3:8080","http://edge4:8080","http://edge5:8080","http://edge6:8080","http://edge7:8080","http://edge8:8080","http://edge9:8080"}
+	//m.edges = [10]string{"http://edge0:8080","http://edge1:8080","http://edge2:8080","http://edge3:8080","http://edge4:8080","http://edge5:8080","http://edge6:8080","http://edge7:8080","http://edge8:8080","http://edge9:8080"}
+	m.edges = [2]string{"http://edge2:8080","http://edge4:8080"}
 	m.myaddress = "http://13.48.6.180:6666"
-	m.DEVICE_COUNT=1
-	m.MAX_DEVICE_COUNT=20
-	m.MAX_DATA_COUNT=500
-	m.DATA_COUNT =2
+	m.DEVICE_COUNT=1 //it was 1=
+	m.MAX_DEVICE_COUNT=2
+	m.MAX_DATA_COUNT=4
+	m.DATA_COUNT =3 // it was 2
 
 
 
@@ -108,10 +109,11 @@ func (m * Main)createFogFunction() {
 }
 
 
-func (m * Main)registerDevice(i int) {
+func (m * Main)registerDevice(i int,location int) {
 	url := m.brokerurl+"/ngsi10/updateContext"
 
-	query:= fmt.Sprintf("{\n\t\"contextElements\":[\n           {\n                \"entityId\": {\n                    \"id\": \"car.%d\",\n                    \"type\": \"Car.Data\",\n                    \"isPattern\": false\n                },\"attributes\": [\n\t\t          {\n\t\t            \"name\": \"carid\",\n\t\t            \"type\": \"string\",\n\t\t            \"contextValue\": \"car.%d\"\n\t\t          }\n\t\t        ], \"domainMetadata\": [\n                    {\n                        \"name\": \"car.plate.number\",\n                        \"type\": \"string\",\n                        \"value\": \"%d\"\n                    }\n                ]\n\n            }\n\t\t\n\t\t],\n\t\t\n\t\"updateAction\": \"UPDATE\"\n}",i,i,i)
+	//query:= fmt.Sprintf("{\n\t\"contextElements\":[\n           {\n                \"entityId\": {\n                    \"id\": \"car.%d\",\n                    \"type\": \"Car.Data\",\n                    \"isPattern\": false\n                },\"attributes\": [\n\t\t          {\n\t\t            \"name\": \"carid\",\n\t\t            \"type\": \"string\",\n\t\t            \"contextValue\": \"car.%d\"\n\t\t          }\n\t\t        ], \"domainMetadata\": [\n                    {\n                        \"name\": \"car.plate.number\",\n                        \"type\": \"string\",\n                        \"value\": \"%d\"\n                    }\n                ]\n\n            }\n\t\t\n\t\t],\n\t\t\n\t\"updateAction\": \"UPDATE\"\n}",i,i,i)
+	query:= fmt.Sprintf("{\n\t\"contextElements\":[\n           {\n                \"entityId\": {\n                    \"id\": \"car.%d\",\n                    \"type\": \"Car.Data\",\n                    \"isPattern\": false\n                },\"attributes\": [\n\t\t          {\n\t\t            \"name\": \"carid\",\n\t\t            \"type\": \"string\",\n\t\t            \"contextValue\": \"car.%d\"\n\t\t          }\n\t\t        ], \"domainMetadata\": [\n                    {\n                        \"name\": \"car.plate.number\",\n                        \"type\": \"string\",\n                        \"value\": \"%d\"\n                    }, \n                    {\n\t\t                \"name\": \"location\",\n\t\t                \"type\": \"point\",\n\t\t                \"value\": {\n\t\t                    \"latitude\": \"0\",\n\t\t                    \"longitude\": \"%d\"\n\t\t                }\n\t\t            }\n                ]\n\n            }\n\t\t\n\t\t],\n\t\t\n\t\"updateAction\": \"UPDATE\"\n}",i,i,i,location)
 	payload := strings.NewReader(query)
 
 	req, _ := http.NewRequest("POST", url, payload)
@@ -236,9 +238,13 @@ func (m * Main)startExperiment() {
 
 
 func (m * Main)registerDevices() {
+	location := 5
+	 if rand.Intn(2)==1 {
+	 	location = 1
+	 }
 	for i:=1; i<m.MAX_DEVICE_COUNT; i++ {
 		fmt.Println("Registring Device %d", i)
-		m.registerDevice(i)
+		m.registerDevice(i,location)
 		time.Sleep(2*time.Second)
 		m.DEVICE_COUNT += 1
 	}
@@ -247,16 +253,17 @@ func (m * Main)registerDevices() {
 
 func (m * Main)sendDataToEdgeNodes() {
 
-	for i:=1; i<m.MAX_DATA_COUNT; i++ {
+	for i:=m.DATA_COUNT; i<m.MAX_DATA_COUNT; i++ {
 
 		rand.Seed(time.Now().Unix())
 		time.Sleep(100*time.Millisecond)
 
-		deviceid :=rand.Intn(m.DEVICE_COUNT)
-		fmt.Printf("DEBUG: DeviceID: %v",i)
-		for _, edge := range m.edges {
-			m.sendDataToEdgeBroker(edge,deviceid, deviceid*1000 + i)
-		}
+		deviceid :=rand.Intn(m.DEVICE_COUNT)+1
+		fmt.Printf("DEBUG: Sending Data: ",deviceid*1000 + i," DeviceID: ",i)
+		//for _, edge := range m.edges {
+			//m.sendDataToEdgeBroker(edge,deviceid, deviceid*1000 + i)
+		//}
+		m.sendDataToEdgeBroker(m.brokerurl,deviceid, deviceid*1000 + i)
 	}
 }
 

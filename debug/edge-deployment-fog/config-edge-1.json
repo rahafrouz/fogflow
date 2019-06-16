@@ -4,8 +4,8 @@
     "external_hostip": "EDGEADDRESS",
     "internal_hostip": "172.17.0.1",
     "physical_location":{
-        "longitude": 129.709059,
-        "latitude": 39.692221,
+        "longitude": LONGITUDE,
+        "latitude": 0,
         "section": "04",
         "district": "06",
         "city": "Skelleftea"
