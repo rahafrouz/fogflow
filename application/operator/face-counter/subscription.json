@@ -6,5 +6,5 @@
             "id": "Stream.Camera.01"
         }
     ],
-    "reference": "http://192.168.1.80:8000"
+    "reference": "http://0.0.0.0:8080"
 }

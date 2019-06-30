@@ -1,8 +1,8 @@
 [{
 	"command": "CONNECT_BROKER",
-	"brokerURL": "http://192.168.1.80:8091/ngsi10"
+	"brokerURL": "http://localhost:6666/"
 }, {
 	"command": "SET_OUTPUTS",
-	"id": "Stream.FaceNum.01",
+	"id": "Stream.FaceNum.amir.01",
 	"type": "FaceNum"
 }]

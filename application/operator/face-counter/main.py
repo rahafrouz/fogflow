@@ -1,3 +1,4 @@
+from __future__ import print_function
 from flask import Flask, jsonify, abort, request, make_response
 import requests 
 import json
@@ -8,6 +9,8 @@ import urllib
 import cv2
 import openface
 import os
+import sys
+
 
 app = Flask(__name__, static_url_path = "")
 
@@ -58,7 +61,7 @@ def element2Object(element):
     ctxObj['attributes'] = {}  
     if 'attributes' in element:
         for attr in element['attributes']:
-            ctxObj['attributes'][attr['name']] = {'type': attr['type'], 'value': attr['contextValue']}   
+            ctxObj['attributes'][attr['name']] = {'type': attr['type'], 'value': attr['contextValue']}
     
     ctxObj['metadata'] = {}
     if 'domainMetadata' in element:    
@@ -88,7 +91,7 @@ def object2Element(ctxObj):
     return ctxElement
 
 def readContextElements(data):
-    print data
+    print (data , file=sys.stdout)
 
     ctxObjects = []
     
@@ -102,20 +105,22 @@ def readContextElements(data):
 def handleNotify(contextObjs):
     for ctxObj in contextObjs:
         processInputStreamData(ctxObj)
+        # print ("this is for a context object", file=sys.stdout)
 
 def processInputStreamData(obj):
     global cameraURL
-    print '===============receive context entity===================='
-    print obj
+    print ('===============receive context entity====================', file=sys.stdout)
+    sys.stdout.flush()
+    print (obj, file=sys.stdout)
 
     if 'attributes' in obj:
         attributes = obj['attributes']
         if 'url' in attributes:
             cameraURL = attributes['url']['value'] 
-            
+            imageId = attributes['imageId']['value']
             with lock: 
                 result = faceCounting(cameraURL)  #fetch the captured image from a web camera
-                publishResult(result)  #publish the generated result to the configured broker
+                publishResult(result,imageId)  #publish the generated result to the configured broker
 
 def handleConfig(configurations):  
     global brokerURL
@@ -129,16 +134,18 @@ def handleConfig(configurations):
 def handleTimer():
     global timer
 
-    if cameraURL != '':
-        with lock: 
-            result = faceCounting(cameraURL)  #fetch the captured image from a web camera
-            publishResult(result)  #publish the generated result to the configured broker
-        
-    timer = threading.Timer(30, handleTimer)  # change to every 30 seconds
-    timer.start()
+    # if cameraURL != '':
+    #     # with lock:
+    #     #     result = faceCounting(cameraURL)  #fetch the captured image from a web camera
+    #     #     publishResult(result)  #publish the generated result to the configured broker
+    #
+    # timer = threading.Timer(30, handleTimer)  # change to every 30 seconds
+    # timer.start()
 
 
-def publishResult(result):
+def publishResult(result,imgid):
+    print("publishing this result",file=sys.stdout)
+    print(result,file=sys.stdout)
     resultCtxObj = {}
         
     #annotate the context with the configured entity id and type
@@ -152,9 +159,10 @@ def publishResult(result):
     
     resultCtxObj['attributes'] = {}
     resultCtxObj['attributes']['num'] = {'type': 'integer', 'value': result['facenum']}
-    resultCtxObj['attributes']['totalbytes'] = {'type': 'integer', 'value': result['totalbytes']}    
+    resultCtxObj['attributes']['totalbytes'] = {'type': 'integer', 'value': result['totalbytes']}
+    resultCtxObj['attributes']['imageId'] = {'type': 'string', 'value': imgid}
 
-    # publish the real time results as context updates    
+# publish the real time results as context updates
     updateContext(resultCtxObj)
 
 def updateContext(ctxObj):
@@ -170,10 +178,11 @@ def updateContext(ctxObj):
     updateCtxReq['contextElements'].append(ctxElement)
 
     headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
+    print ("---------AMIR: Publishing results:"+brokerURL,file=sys.stdout)
     response = requests.post(brokerURL + '/updateContext', data=json.dumps(updateCtxReq), headers=headers)
     if response.status_code != 200:
-        print 'failed to update context'
-        print response.text
+        print ('failed to update context',file=sys.stdout)
+        print (response.text, file=sys.stdout)
 
 
 def url2Image(url): 
@@ -188,7 +197,8 @@ def url2Image(url):
     rgbImg = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     return rgbImg
 
-def faceCounting(url):     
+def faceCounting(url):
+    print ("Start--searching for faces:", file=sys.stdout)
     image = url2Image(url)
     if image is None:
         raise Exception("Unable to load image: {}".format(url))
@@ -198,8 +208,9 @@ def faceCounting(url):
         raise Exception("Unable to find a face: {}".format(url))
 
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")      
-    result = {"date": now, "facenum": len(faces), "totalbytes": total_size}    
-
+    result = {"date": now, "facenum": len(faces), "totalbytes": total_size}
+    print ("END--this is the result found:", file=sys.stdout)
+    print (result, file=sys.stdout)
     return result
     
 
@@ -207,7 +218,8 @@ if __name__ == '__main__':
     handleTimer()    
     
     myport = os.environ['myport']
-    
+
+
     app.run(host='0.0.0.0', port=myport)
     
     timer.cancel()
