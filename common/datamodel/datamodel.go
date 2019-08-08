@@ -3,7 +3,7 @@ package datamodel
 import (
 	"encoding/json"
 
-	. "github.com/smartfog/fogflow/common/ngsi"
+	. "github.com/rahafrouz/fogflow/common/ngsi"
 )
 
 // Message represents a single task invocation
@@ -215,14 +215,14 @@ type ScheduledTaskInstance struct {
 }
 
 type WorkerProfile struct {
-	WID       string
-	PLocation PhysicalLocation
-	LLocation LogicalLocation
-	Capacity  int
-	OSType    string
-	HWType    string
+	WID          string
+	PLocation    PhysicalLocation
+	LLocation    LogicalLocation
+	Capacity     int
+	OSType       string
+	HWType       string
 	CAdvisorPort int
-	EdgeAddress string
+	EdgeAddress  string
 }
 
 type WorkerStat struct {

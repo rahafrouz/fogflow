@@ -9,7 +9,7 @@ import (
 
 	"github.com/streadway/amqp"
 
-	. "github.com/smartfog/fogflow/common/datamodel"
+	. "github.com/rahafrouz/fogflow/common/datamodel"
 )
 
 type TaskProcessor interface {
@@ -235,11 +235,11 @@ func (communicator *Communicator) openSubscriber() (*amqp.Channel, amqp.Queue, e
 	if err := channel.ExchangeDeclare(
 		communicator.config.Exchange,     // name of the exchange
 		communicator.config.ExchangeType, // type
-		true,  // durable
-		true,  // delete when complete
-		false, // internal
-		false, // noWait
-		nil,   // arguments
+		true,                             // durable
+		true,                             // delete when complete
+		false,                            // internal
+		false,                            // noWait
+		nil,                              // arguments
 	); err != nil {
 		return channel, queue, fmt.Errorf("Exchange Declare: %s\r\n", err)
 	}
@@ -247,11 +247,11 @@ func (communicator *Communicator) openSubscriber() (*amqp.Channel, amqp.Queue, e
 	// Declare a queue
 	queue, err = channel.QueueDeclare(
 		communicator.config.DefaultQueue, // name
-		true,  // durable
-		true,  // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // arguments
+		true,                             // durable
+		true,                             // delete when unused
+		false,                            // exclusive
+		false,                            // no-wait
+		nil,                              // arguments
 	)
 	if err != nil {
 		return channel, queue, fmt.Errorf("Queue Declare: %s\r\n", err)
@@ -260,11 +260,11 @@ func (communicator *Communicator) openSubscriber() (*amqp.Channel, amqp.Queue, e
 	// Bind topics with the queue
 	for _, key := range communicator.config.BindingKeys {
 		if err := channel.QueueBind(
-			queue.Name, // name of the queue
-			key,        // binding topic
+			queue.Name,                   // name of the queue
+			key,                          // binding topic
 			communicator.config.Exchange, // source exchange
-			false, // noWait
-			nil,   // arguments
+			false,                        // noWait
+			nil,                          // arguments
 		); err != nil {
 			return channel, queue, fmt.Errorf("Queue Bind: %s\r\n", err)
 		}
@@ -302,11 +302,11 @@ func (communicator *Communicator) openPublisher() (*amqp.Channel, <-chan amqp.Co
 	if err := channel.ExchangeDeclare(
 		communicator.config.Exchange,     // name of the exchange
 		communicator.config.ExchangeType, // type
-		true,  // durable
-		true,  // delete when complete
-		false, // internal
-		false, // noWait
-		nil,   // arguments
+		true,                             // durable
+		true,                             // delete when complete
+		false,                            // internal
+		false,                            // noWait
+		nil,                              // arguments
 	); err != nil {
 		return channel, nil, fmt.Errorf("Exchange Declare: %s", err)
 	}

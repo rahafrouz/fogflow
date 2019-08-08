@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/smartfog/fogflow/common/datamodel"
+	. "github.com/rahafrouz/fogflow/common/datamodel"
 )
 
 var (
@@ -61,8 +61,10 @@ type Config struct {
 		DBCfg DatabaseCfg `json:"postgresql"`
 	} `json:"discovery"`
 	Broker struct {
-		Port          int `json:"port"`
-		WebSocketPort int `json:"websocket"`
+		Port                         int    `json:"port"`
+		WebSocketPort                int    `json:"websocket"`
+		HasMemory                    bool   `json:"has_memory"`
+		PrometheusPushGateWayAddress string `json:"prom_pushgateway"`
 	} `json:"broker"`
 	Master struct {
 		AgentPort int `json:"ngsi_agent_port"`
@@ -70,8 +72,8 @@ type Config struct {
 	Worker struct {
 		Registry            RegistryConfiguration `json:"registry,omitempty"`
 		ContainerAutoRemove bool                  `json:"container_autoremove"`
-		EdgeAddress string `json:"edge_address"`
-		CAdvisorPort int `json:"cadvisor_port"`
+		EdgeAddress         string                `json:"edge_address"`
+		CAdvisorPort        int                   `json:"cadvisor_port"`
 	} `json:"worker"`
 	RabbitMQ struct {
 		Port     int    `json:"port"`
@@ -79,10 +81,10 @@ type Config struct {
 		Password string `json:"password"`
 	} `json:"rabbitmq"`
 	Prometheus struct {
-		Address string `json:"address"`
-		DataPort int `json:"data_port"`
-		AdminPort int `json:"admin_port"`
-	}`json:"prometheus"`
+		Address   string `json:"address"`
+		DataPort  int    `json:"data_port"`
+		AdminPort int    `json:"admin_port"`
+	} `json:"prometheus"`
 }
 
 var logTargets map[string]io.Writer = map[string]io.Writer{
