@@ -34,7 +34,7 @@ services:
 #        volumes:
 #            - /tmp/sublogger/:/tmp/sublogger
     master:
-        image: rahafrouz/fogflow-master:aws
+        image: rahafrouz/fogflow-master:ahp
         volumes:
             - ./config.json:/config.json
         links:
