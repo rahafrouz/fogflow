@@ -5,9 +5,9 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	. "github.com/smartfog/fogflow/common/config"
-	. "github.com/smartfog/fogflow/common/datamodel"
-	. "github.com/smartfog/fogflow/common/ngsi"
+	. "github.com/rahafrouz/fogflow/common/config"
+	. "github.com/rahafrouz/fogflow/common/datamodel"
+	. "github.com/rahafrouz/fogflow/common/ngsi"
 )
 
 type Constraint struct {

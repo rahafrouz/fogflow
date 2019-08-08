@@ -1,6 +1,10 @@
 go get
+#aws tag is for logflow and old tag is for fogflow
 
 #build the linux version (amd64) of master
 env GOOS=linux GOARCH=amd64 go build  -a  -o master
-docker build -t "fogflow/master" .
-
+docker build -t "rahafrouz/fogflow-master:aws" .
+#aws tag is for logflow and old tag is for fogflow
+#pushing to dockerhub
+echo "pushing master to dockerhub"
+docker push rahafrouz/fogflow-master:aws
