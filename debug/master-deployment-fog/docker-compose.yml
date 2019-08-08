@@ -71,11 +71,11 @@ services:
             - 5672:5672
         environment:
             - RABBITMQ_PASS=mypass
-#    prometheus:
-#        image: prom/prometheus
-#        ports:
-#            - 9090:9090
-#            - 4545:4545
+    prometheus:
+        image: fogflow/prometheus
+        ports:
+            - 9090:9090
+            - 4545:4545
 #        volumes:
 #            - ../prom/prometheus.yml:/etc/prometheus/prometheus.yml
 #            - ../prom/tgroups:/etc/prometheus/tgroups
