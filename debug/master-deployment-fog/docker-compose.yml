@@ -72,7 +72,7 @@ services:
         environment:
             - RABBITMQ_PASS=mypass
     prometheus:
-        image: fogflow/prometheus
+        image: rahafrouz/prometheus
         ports:
             - 9090:9090
             - 4545:4545
