@@ -16,7 +16,7 @@ services:
             - /sys:/sys:ro
             - /var/lib/docker/:/var/lib/docker:ro
     broker:
-        image: fogflow/broker
+        image: fogflow/broker:2.0
         volumes:
             - ./config-edge-1.json:/config.json
         ports:
