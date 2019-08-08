@@ -1,7 +1,7 @@
 version: "2.1"
 services:
     designer:
-        image: fogflow/designer
+        image: fogflow/designer:2.0
         volumes:
             - ./config.json:/app/config.json
         ports:
@@ -11,7 +11,7 @@ services:
             - discovery
             - broker
     discovery:
-        image: fogflow/discovery
+        image: fogflow/discovery:2.0
         volumes:
             - ./config.json:/config.json
         ports:
@@ -19,7 +19,7 @@ services:
         depends_on: 
             - postgis
     broker:
-        image: fogflow/broker
+        image: fogflow/broker:2.0
         volumes:
             - ./config.json:/config.json
         ports:
@@ -45,12 +45,12 @@ services:
             - rabbitmq
             - discovery
             - broker  
-    cloud_worker_1:
-        image: rahafrouz/fogflow-worker:aws
-        volumes:
-            - /tmp:/tmp        
-            - ./config.json:/config.json
-            - /var/run/docker.sock:/var/run/docker.sock
+#    cloud_worker_1:
+#        image: rahafrouz/fogflow-worker:aws
+#        volumes:
+#            - /tmp:/tmp
+#            - ./config.json:/config.json
+#            - /var/run/docker.sock:/var/run/docker.sock
     cadvisor:
         image: google/cadvisor
         ports:

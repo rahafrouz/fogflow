@@ -1,7 +1,7 @@
 version: "2"
 services:
     cloud_worker:
-        image: fogflow/worker
+        image: fogflow/worker:2.0
         volumes:
             - /tmp:/tmp        
             - ./config-edge-1.json:/config.json                
@@ -15,9 +15,9 @@ services:
             - /var/run:/var/run:rw
             - /sys:/sys:ro
             - /var/lib/docker/:/var/lib/docker:ro
-    broker:
-        image: fogflow/broker
-        volumes:
-            - ./config-edge-1.json:/config.json
-        ports:
-            - 8080:8080
+#    broker:
+#        image: fogflow/broker
+#        volumes:
+#            - ./config-edge-1.json:/config.json
+#        ports:
+#            - 8080:8080

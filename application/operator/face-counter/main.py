@@ -218,7 +218,8 @@ if __name__ == '__main__':
     handleTimer()    
     
     myport = os.environ['myport']
-
+    if myport == "0":
+        exit(1)
 
     app.run(host='0.0.0.0', port=myport)
     

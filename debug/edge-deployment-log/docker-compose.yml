@@ -15,9 +15,9 @@ services:
             - /var/run:/var/run:rw
             - /sys:/sys:ro
             - /var/lib/docker/:/var/lib/docker:ro
-    broker:
-        image: fogflow/broker
-        volumes:
-            - ./config-edge-1.json:/config.json
-        ports:
-            - 8080:8080
+#    broker:
+#        image: fogflow/broker
+#        volumes:
+#            - ./config-edge-1.json:/config.json
+#        ports:
+#            - 8080:8080
