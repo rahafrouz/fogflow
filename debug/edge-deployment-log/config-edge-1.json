@@ -33,10 +33,6 @@
             "dbname": "ngsi9"
         }    
     },
-    "broker": {
-        "port": 8080,
-        "websocket": 8090        
-    },    
     "master": {
         "ngsi_agent_port": 1060         
     },

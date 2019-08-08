@@ -3,10 +3,13 @@ go get
 
 #build the linux version (amd64) of worker
 env GOOS=linux GOARCH=amd64 go build  -a  -o worker
-docker build -t "fogflow/worker" .
+docker build -t "rahafrouz/fogflow-worker:aws" .
 
 
 #build the arm version of worker
 env GOOS=linux GOARCH=arm go build  -a  -o worker_arm
-docker build -f Dockerfile4Arm -t "fogflow/worker:arm"  .
+docker build -f Dockerfile4Arm -t "rahafrouz/fogflow-worker:arm"  .
 
+#pushing to dockerhub
+echo "pushing worker to dockerhub"
+docker push rahafrouz/fogflow-worker:aws
