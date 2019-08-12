@@ -5,7 +5,7 @@
     "internal_hostip": "172.17.0.1",  
     "physical_location":{
         "longitude": LONGITUDE,
-        "latitude": 0,
+        "latitude": LATITUDE,
         "section": "04",
         "district": "06",
         "city": "Skelleftea"
